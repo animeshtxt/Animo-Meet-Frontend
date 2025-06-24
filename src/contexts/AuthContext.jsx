@@ -2,7 +2,7 @@ import { createContext, useContext } from "react";
 import axios from "axios";
 import status from "http-status";
 import { useState, React } from "react";
-import { useNavigate } from "react-router-dom";
+// import { useNavigate } from "react-router-dom";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
 
@@ -14,8 +14,8 @@ const client = axios.create({
 });
 
 export function AuthProvider({ children }) {
-  const authContext = useContext(AuthContext);
-  const router = useNavigate();
+  // const authContext = useContext(AuthContext);
+  // const router = useNavigate();
 
   // snackbar
   const [snackbarOpen, setSnackbarOpen] = useState(false);

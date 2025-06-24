@@ -164,9 +164,9 @@ export default function Signup() {
   return (
     <div className="login-container">
       <div className="form-container">
-        <h1 style={{ textAlign: "center", width: "100%" }}>Leo Conference</h1>
+        <h1 class="text-3xl font-bold text-center w-full">Leo Conference</h1>
 
-        <h2 style={{ textAlign: "center", width: "100%" }}>Signup</h2>
+        <h2 className="text-xl font-bold text-center w-full">SignUp</h2>
         <form action="">
           <div className="input-container">
             <label htmlFor="name">Full Name</label>
