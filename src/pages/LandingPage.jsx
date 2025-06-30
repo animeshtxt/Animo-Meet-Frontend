@@ -1,9 +1,10 @@
 import "../App.css";
 import { Link } from "react-router-dom";
+import Navbar from "../components/Navbar";
 function LandingPage() {
   return (
     <div className="landing-page">
-      <nav className="navbar">
+      {/* <nav className="navbar">
         <div id="brand-name">
           <h1 className="text-3xl font-bold text-center">Leo Conference</h1>
         </div>
@@ -22,7 +23,8 @@ function LandingPage() {
             Register
           </Link>
         </div>
-      </nav>
+      </nav> */}
+      <Navbar />
       <div id="connect">
         <div>
           <h1

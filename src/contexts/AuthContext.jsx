@@ -5,6 +5,7 @@ import { useState, React } from "react";
 // import { useNavigate } from "react-router-dom";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
+import { useEffect } from "react";
 
 export const AuthContext = createContext("");
 
@@ -19,11 +20,50 @@ export function AuthProvider({ children }) {
 
   // snackbar
   const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snakcbarMsg, setSnackbarMsg] = useState({});
-
+  const [snackbarMsg, setSnackbarMsg] = useState({});
+  const [token, setToken] = useState();
+  const [user, setUser] = useState({});
+  const [isGuest, setIsGuest] = useState(true);
   const handleClose = (event, reason) => {
     if (reason === "clickaway") return;
     setSnackbarOpen(false);
+  };
+  const validateToken = async () => {
+    const token = localStorage.getItem("token");
+    if (!token || token === "") {
+      setIsGuest(true);
+      console.log("Token not present");
+      return false;
+    }
+    try {
+      let response = await client.get("/validate-token", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.status === status.OK) {
+        setToken(token);
+        setUser({ username: response.data.username, name: response.data.name });
+        console.log("Token verified, user : ", response.data.name);
+        setIsGuest(false);
+        return true;
+      } else {
+        console.log(
+          `status : ${response.status} message: ${response.data.message}`
+        );
+      }
+    } catch (e) {
+      console.dir(e.response);
+      const serverMsg = e.response?.data?.message || "Unknown error";
+      const serverStatus = e.response?.status || 500;
+      // setSnackbarMsg({
+      //   severity: "error",
+      //   message: serverMsg,
+      // });
+      // setSnackbarOpen(true);
+      setIsGuest(true);
+      return false;
+    }
+
+    return false;
   };
   const handleRegister = async (name, username, password) => {
     try {
@@ -59,6 +99,9 @@ export function AuthProvider({ children }) {
         console.dir(response);
         console.log("token : " + response.data.token);
         localStorage.setItem("token", response.data.token);
+        setToken(response.data.token);
+        setUser({ username: response.data.username, name: response.data.name });
+        console.log("Token : ", token);
         // router("/home");
         return { serverMsg: response.data.message, serverStatus: status.OK };
       } else {
@@ -76,6 +119,17 @@ export function AuthProvider({ children }) {
       return { serverMsg, serverStatus };
     }
   };
+
+  // useEffect(() => {
+  //   const token = localStorage.getItem("token");
+  //   if (token && token !== "") {
+  //     if (validateToken(token)) {
+  //       setToken(token);
+  //     }
+  //   } else {
+  //     console.log("No token present");
+  //   }
+  // }, []);
   return (
     <div>
       <AuthContext.Provider
@@ -84,8 +138,15 @@ export function AuthProvider({ children }) {
           handleRegister,
           snackbarOpen,
           setSnackbarOpen,
-          snakcbarMsg,
+          snackbarMsg,
           setSnackbarMsg,
+          token,
+          setToken,
+          user,
+          setUser,
+          validateToken,
+          isGuest,
+          setIsGuest,
         }}
       >
         {children}
@@ -93,16 +154,16 @@ export function AuthProvider({ children }) {
           open={snackbarOpen}
           autoHideDuration={6000}
           onClose={handleClose}
-          anchorOrigin={{ vertical: "top", horizontal: "right" }}
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
           key={"top" + "right"}
         >
           <Alert
-            severity={snakcbarMsg.severity}
+            severity={snackbarMsg.severity}
             variant="filled"
             sx={{ width: "100%" }}
             onClose={handleClose}
           >
-            {snakcbarMsg.message}
+            {snackbarMsg.message}
           </Alert>
         </Snackbar>
       </AuthContext.Provider>

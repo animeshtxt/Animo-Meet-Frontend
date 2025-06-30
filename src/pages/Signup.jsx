@@ -5,6 +5,7 @@ import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
 import status from "http-status";
 import { useNavigate } from "react-router-dom";
+import Navbar from "../components/Navbar";
 
 export default function Signup() {
   const [name, setName] = useState("");
@@ -162,122 +163,124 @@ export default function Signup() {
   }, [username]);
 
   return (
-    <div className="login-container">
-      <div className="form-container">
-        <h1 class="text-3xl font-bold text-center w-full">Leo Conference</h1>
+    <div className="bg-[url('/images/call-bg.jpg')] bg-cover p-4 w-full h-screen overflow-y-auto p-2">
+      <Navbar />
+      <main className="login-container w-full h-full flex flex-col justify-center items-center">
+        <div className="form-container">
+          <h1 class="text-3xl font-bold text-center w-full">Leo Conference</h1>
 
-        <h2 className="text-xl font-bold text-center w-full">SignUp</h2>
-        <form action="">
-          <div className="input-container">
-            <label htmlFor="name">Full Name</label>
-            <input
-              type="text"
-              name="name"
-              id="name"
-              value={name}
-              required
-              onChange={(e) => setName(e.target.value)}
-            />
-            {inputError && inputError.field === "name" ? (
-              <p style={{ color: "red" }}>{inputError.message}</p>
-            ) : null}
-          </div>
-          <div className="input-container">
-            <label htmlFor="username">Username</label>
-            <input
-              type="text"
-              name="username"
-              id="username"
-              value={username}
-              required
-              onChange={(e) => setUsername(e.target.value)}
-            />
-            {inputError && inputError.field === "username" ? (
-              <p style={{ color: "red" }}>{inputError.message}</p>
-            ) : null}
-          </div>
-          <div className="input-container">
-            <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              name="password"
-              id="password"
-              value={password}
-              required
-              minLength={8}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            {inputError && inputError.field === "password" ? (
-              <p style={{ color: "red" }}>{inputError.message}</p>
-            ) : null}
-          </div>
-          <div className="input-container">
-            <label
-              htmlFor="confirm-password"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              Confirm Password{" "}
-              <div
+          <h2 className="text-xl font-bold text-center w-full">SignUp</h2>
+          <form action="">
+            <div className="input-container">
+              <label htmlFor="name">Full Name</label>
+              <input
+                type="text"
+                name="name"
+                id="name"
+                value={name}
+                required
+                onChange={(e) => setName(e.target.value)}
+              />
+              {inputError && inputError.field === "name" ? (
+                <p style={{ color: "red" }}>{inputError.message}</p>
+              ) : null}
+            </div>
+            <div className="input-container">
+              <label htmlFor="username">Username</label>
+              <input
+                type="text"
+                name="username"
+                id="username"
+                value={username}
+                required
+                onChange={(e) => setUsername(e.target.value)}
+              />
+              {inputError && inputError.field === "username" ? (
+                <p style={{ color: "red" }}>{inputError.message}</p>
+              ) : null}
+            </div>
+            <div className="input-container">
+              <label htmlFor="password">Password</label>
+              <input
+                type="password"
+                name="password"
+                id="password"
+                value={password}
+                required
+                minLength={8}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              {inputError && inputError.field === "password" ? (
+                <p style={{ color: "red" }}>{inputError.message}</p>
+              ) : null}
+            </div>
+            <div className="input-container">
+              <label
+                htmlFor="confirm-password"
                 style={{
-                  display: "inline-flex",
+                  display: "flex",
                   alignItems: "center",
-                  gap: "5px",
+                  justifyContent: "space-between",
                 }}
               >
-                <input
-                  type="checkbox"
-                  id="cp-toggle"
+                Confirm Password{" "}
+                <div
                   style={{
-                    width: "15px",
-                    display: "inline-block",
-                    border: "none",
-                    outline: "none",
-                    boxShadow: "none",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "5px",
                   }}
-                  onClick={() => {
-                    const showPw = document.getElementById("cp-toggle");
-                    // const confPw = document.getElementById("confirm-password");
-                    if (showPw.checked) {
-                      setShowPw(true);
-                    } else {
-                      setShowPw(false);
-                    }
-                  }}
-                />
-                <label htmlFor="cp-toggle" style={{ display: "inline" }}>
-                  Show
-                </label>
-              </div>
-            </label>
-            <input
-              type={showPw ? "text" : "password"}
-              name="confirmPassword"
-              id="confirm-password"
-              value={confirmPassword}
-              required
-              onChange={(e) => setConfirmPassword(e.target.value)}
-            />{" "}
-            {inputError && inputError.field === "confirmPassword" ? (
-              <p style={{ color: "red" }}>{inputError.message}</p>
-            ) : null}
-          </div>
+                >
+                  <input
+                    type="checkbox"
+                    id="cp-toggle"
+                    style={{
+                      width: "15px",
+                      display: "inline-block",
+                      border: "none",
+                      outline: "none",
+                      boxShadow: "none",
+                    }}
+                    onClick={() => {
+                      const showPw = document.getElementById("cp-toggle");
+                      // const confPw = document.getElementById("confirm-password");
+                      if (showPw.checked) {
+                        setShowPw(true);
+                      } else {
+                        setShowPw(false);
+                      }
+                    }}
+                  />
+                  <label htmlFor="cp-toggle" style={{ display: "inline" }}>
+                    Show
+                  </label>
+                </div>
+              </label>
+              <input
+                type={showPw ? "text" : "password"}
+                name="confirmPassword"
+                id="confirm-password"
+                value={confirmPassword}
+                required
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />{" "}
+              {inputError && inputError.field === "confirmPassword" ? (
+                <p style={{ color: "red" }}>{inputError.message}</p>
+              ) : null}
+            </div>
 
-          <button className="auth-btn" onClick={registerUser}>
-            Signup
-          </button>
-        </form>
-        <p style={{ width: "100%", textAlign: "center", margin: "10px" }}>
-          Already have an account?{" "}
-          <Link to="/login" style={{ color: "blue", textDecoration: "none" }}>
-            Login
-          </Link>
-        </p>
-      </div>
-      {/* <Snackbar
+            <button className="auth-btn" onClick={registerUser}>
+              Signup
+            </button>
+          </form>
+          <p style={{ width: "100%", textAlign: "center", margin: "10px" }}>
+            Already have an account?{" "}
+            <Link to="/login" style={{ color: "blue", textDecoration: "none" }}>
+              Login
+            </Link>
+          </p>
+        </div>
+        {/* <Snackbar
         open={open}
         autoHideDuration={6000}
         onClose={handleClose}
@@ -293,6 +296,7 @@ export default function Signup() {
           {msg.message}
         </Alert>
       </Snackbar> */}
+      </main>
     </div>
   );
 }

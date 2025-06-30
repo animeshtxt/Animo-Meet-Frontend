@@ -4,8 +4,9 @@ import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import { AuthProvider } from "./contexts/AuthContext";
-import Home from "./pages/Home";
+import AuthHome from "./pages/Home";
 import VideoMeetComponent from "./pages/VideoMeetComponent";
+import Guest from "./pages/Guest";
 function App() {
   return (
     <>
@@ -15,8 +16,9 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Signup />} />
-            <Route path="/home" element={<Home />} />
-            <Route path="/new-meeting" element={<VideoMeetComponent />} />
+            <Route path="/home" element={<AuthHome />} />
+            <Route path="/:url" element={<VideoMeetComponent />} />
+            <Route path="/guest" element={<Guest />} />
           </Routes>
         </AuthProvider>
       </Router>
