@@ -73,12 +73,16 @@ function Navbar() {
             onClose={handlePopoverClose}
             anchorOrigin={{
               vertical: "bottom",
-              horizontal: "left",
+              horizontal: "right", // align to right edge of anchor
+            }}
+            transformOrigin={{
+              vertical: "top",
+              horizontal: "right", // align right edge of Popover to anchor
             }}
           >
             <div className="p-2">
-              <p className="mb-2">{user.name}</p>
-              <p className="mb-2 text-green-500">{user.username}</p>
+              <p className="mb-2">Name : {user.name}</p>
+              <p className="mb-2 ">Username : {user.username}</p>
               <Button
                 onClick={async () => {
                   localStorage.removeItem("token");

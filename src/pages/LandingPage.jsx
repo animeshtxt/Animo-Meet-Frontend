@@ -4,26 +4,6 @@ import Navbar from "../components/Navbar";
 function LandingPage() {
   return (
     <div className="landing-page">
-      {/* <nav className="navbar">
-        <div id="brand-name">
-          <h1 className="text-3xl font-bold text-center">Leo Conference</h1>
-        </div>
-        <div className="nav-links">
-          <Link to="/" style={{ color: "white", textDecoration: "none" }}>
-            Join as Guest
-          </Link>
-          <Link to="/login" style={{ color: "white", textDecoration: "none" }}>
-            Login
-          </Link>
-          <Link
-            to="/register"
-            style={{ color: "white", textDecoration: "none" }}
-          >
-            {" "}
-            Register
-          </Link>
-        </div>
-      </nav> */}
       <Navbar />
       <div id="connect">
         <div>
@@ -43,7 +23,7 @@ function LandingPage() {
             style={{ color: "white" }}
             className="text-xl font-medium text-start "
           >
-            Cover a distance by Leo Conference
+            Cover a distance by Animo Meet
           </p>
           <div id="get-started">
             <Link

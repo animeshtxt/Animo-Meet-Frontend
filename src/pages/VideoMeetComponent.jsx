@@ -5,7 +5,7 @@ import React, {
   useContext,
   useCallback,
 } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 import {
   TextField,
@@ -19,6 +19,7 @@ import {
   Tooltip,
   Checkbox,
   FormControlLabel,
+  Stack,
 } from "@mui/material";
 import { TabContext, TabList, TabPanel } from "@mui/lab";
 
@@ -35,8 +36,10 @@ import InfoOutlineIcon from "@mui/icons-material/InfoOutline";
 import VolumeUpOutlinedIcon from "@mui/icons-material/VolumeUpOutlined";
 import VolumeOffOutlinedIcon from "@mui/icons-material/VolumeOffOutlined";
 import Badge from "@mui/material/Badge";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
 import io from "socket.io-client";
+import status from "http-status";
 
 import { AuthContext } from "../contexts/AuthContext";
 import Navbar from "../components/Navbar";
@@ -54,7 +57,9 @@ function VideoMeetComponent() {
     validateToken,
     user,
     isGuest,
+    setIsHost,
     isHost,
+    client,
   } = useContext(AuthContext);
 
   let socketRef = useRef();
@@ -89,6 +94,9 @@ function VideoMeetComponent() {
   const [checkedOne, setCheckedOne] = useState(true);
   const [checkedTwo, setCheckedTwo] = useState(true);
   const [checkedThree, setCheckedThree] = useState(true);
+
+  const [copied, setCopied] = useState(false);
+  const { meetingCode } = useParams();
 
   const handleChange = (event, newValue) => {
     setValue(newValue);
@@ -138,30 +146,16 @@ function VideoMeetComponent() {
       window.localStream = userMediaStream;
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = userMediaStream;
+        localVideoRef.current
+          .play()
+          .catch((err) => console.error("play() failed:", err));
         console.log("local video ref set");
       }
-      // console.log("LIne 50: videopermission : ");
-      // console.dir(videoPermission);
-      // console.log("audiopermission : ");
-      // console.dir(audioPermission);
-      // if (navigator.mediaDevices.getDisplayMedia) {
-      //   setScreenAvailable(true);
-      // } else {
-      //   setScreenAvailable(false);
-      // }
-
-      // if (videoAvailable || audioAvailable) {
-      //   const userMediaStream = await navigator.mediaDevices.getUserMedia({
-      //     video: videoAvailable,
-      //     audio: audioAvailable,
-      //   });
-      //   if (userMediaStream) {
-      //     window.localStream = userMediaStream;
-      //     if (localVideoRef.current) {
-      //       localVideoRef.current.srcObject = userMediaStream;
-      //     }
-      //   }
-      // }
+      console.log("Final video tracks:", userMediaStream.getVideoTracks());
+      console.log(
+        "Track state:",
+        userMediaStream.getVideoTracks()[0]?.readyState
+      );
 
       userMediaStream.getTracks().forEach((track) => {
         track.onended = () => {
@@ -562,7 +556,7 @@ function VideoMeetComponent() {
   // if(isChrome() ===false){
   //   }
 
-  let connect = () => {
+  let connect = async () => {
     if (!user.name && !username && username.length === 0) {
       setSnackbarOpen(true);
       setSnackbarMsg({
@@ -577,6 +571,17 @@ function VideoMeetComponent() {
     } else {
       console.log("not guest");
       setUsername(user.name);
+      try {
+        const response = await client.get("/meeting/check-host", {
+          params: { username: user.username, meetingCode },
+        });
+        if (response.status === status.OK) {
+          setIsHost(true);
+        }
+        console.log(response.data);
+      } catch (error) {
+        console.error("Error checking host:", error);
+      }
     }
 
     setAskForUsername(false);
@@ -809,6 +814,15 @@ function VideoMeetComponent() {
       );
     }
   );
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(meetingCode);
+    } catch (err) {
+      console.error("Copy failed", err);
+    }
+  };
+
   return (
     <div className="video-meet-component w-screen h-screen p-4 relative bg-[url('/images/call-bg.jpg')] bg-cover overflow-y-auto">
       {askForUsername === true ? (
@@ -888,22 +902,6 @@ function VideoMeetComponent() {
         <>
           <div className="flex gap-4 w-full justify-between rounded-lg p-2 ">
             <div className="flex items-start justify-start gap-[20px] flex-wrap w-full mb-24">
-              {/* {videos.map((video) => (
-                <div
-                  key={video.socketId}
-                  className="max-w-[400px] aspect-video rounded-lg"
-                >
-                  <VideoPlayer
-                    stream={video.stream}
-                    className="rounded-lg"
-                    muted={!speakerOn}
-                  />
-                  {/* <video ref={video.stream}></video> */}
-              {/* <h2 className="text-white text-center">
-                    {usernames[video.socketId] || video.socketId}
-                  </h2>
-                </div>
-              {))}  */}
               {videos.map((video) => (
                 <VideoTile
                   key={video.socketId}
@@ -913,13 +911,16 @@ function VideoMeetComponent() {
                 />
               ))}
 
-              <div key={video.socketId} className="max-w-[400px]">
+              <div className="max-w-[400px] local-video">
                 <video
                   ref={localVideoRef}
                   autoPlay
                   muted
+                  height="600"
+                  width="400"
                   className="rounded-lg aspect-video"
                 />
+                {console.log(localVideoRef)}
                 <h2 className="text-white text-center">
                   {username}
                   {" (you)"}
@@ -1105,8 +1106,12 @@ function VideoMeetComponent() {
                         aria-label="lab API tabs example"
                       >
                         <Tab label="Attendees" value="0" />
-                        {isHost ? <Tab label="Control" value="1" /> : <></>}
-                        <Tab label="Other" value="2" />
+                        <Tab
+                          label="Control"
+                          value="1"
+                          sx={{ display: isHost ? "inline-flex" : "none" }}
+                        />
+                        <Tab label="Joining Info" value="2" />
                       </TabList>
                     </Box>
                     <TabPanel value="0">
@@ -1126,8 +1131,12 @@ function VideoMeetComponent() {
                           : null}
                       </ul>
                     </TabPanel>
-                    {isHost ? (
-                      <TabPanel value="1">
+
+                    <TabPanel
+                      value="1"
+                      sx={{ display: isHost ? "inline-flex" : "none" }}
+                    >
+                      <Stack direction="column" spacing={1}>
                         <FormControlLabel
                           control={
                             <Checkbox
@@ -1157,11 +1166,22 @@ function VideoMeetComponent() {
                           }
                           label="Everyone can share screen"
                         />
-                      </TabPanel>
-                    ) : (
-                      <></>
-                    )}
-                    <TabPanel value="2">Item Two</TabPanel>
+                      </Stack>
+                    </TabPanel>
+
+                    <TabPanel value="2">
+                      <TextField
+                        value={meetingCode}
+                        variant="outlined"
+                        size="small"
+                        InputProps={{ readOnly: true }}
+                      />
+                      <Tooltip title={copied ? "Copied!" : "Copy"}>
+                        <IconButton onClick={handleCopy} color="primary">
+                          <ContentCopyIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </TabPanel>
                   </TabContext>
                 </Box>
               </Drawer>
