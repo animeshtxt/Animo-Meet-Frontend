@@ -5,12 +5,16 @@ import Navbar from "../components/Navbar";
 import { Button, TextField } from "@mui/material";
 import VideoCallIcon from "@mui/icons-material/VideoCall";
 import { AuthContext } from "../contexts/AuthContext";
+import status from "http-status";
 
 function Home() {
   let routeTo = useNavigate();
   const [meetingCode, setMeetingCode] = useState("");
-  const { setSnackbarMsg, setSnackbarOpen } = useContext(AuthContext);
-
+  const { setSnackbarMsg, setSnackbarOpen, setIsHost, client } =
+    useContext(AuthContext);
+  const [creatingNewMeet, setCreatingNewMeet] = useState(false);
+  const [checkingCode, setCheckingCode] = useState(false);
+  const [joinigMeet, setJoiningMeet] = useState(false);
   let handleJoinVideoCall = async () => {
     if (meetingCode === "") {
       setSnackbarMsg({
@@ -20,7 +24,36 @@ function Home() {
       setSnackbarOpen(true);
       return;
     }
-    routeTo(`/${meetingCode}`);
+    setCheckingCode(true);
+    try {
+      const response = await client.get(`/meeting/check-meet/${meetingCode}`);
+      if (response.status === status.FOUND) {
+        setJoiningMeet(true);
+        routeTo(`/${meetingCode}`);
+      } else {
+        setSnackbarMsg({
+          severity: "warning",
+          message: response.data.message,
+        });
+      }
+    } catch (error) {
+      if (error.response?.status === 404) {
+        setSnackbarMsg({
+          severity: "error",
+          message: "Meeting not found. Please check the code and try again.",
+        });
+        setSnackbarOpen(true);
+        console.error(error.response);
+      } else {
+        setSnackbarMsg({
+          severity: "error",
+          message: "Something went wrong. Try again later.",
+        });
+        setSnackbarOpen(true);
+      }
+    }
+    setCheckingCode(false);
+    setJoiningMeet(false);
   };
   function generateMeetingCode() {
     const segment = (length) =>
@@ -31,8 +64,30 @@ function Home() {
     return `${segment(3)}-${segment(4)}-${segment(3)}`;
   }
 
-  const createNewMeeting = () => {
-    const newCode = generateMeetingCode();
+  const createNewMeeting = async () => {
+    setCreatingNewMeet(true);
+    let isUnique = false;
+    let newCode;
+    while (!isUnique) {
+      newCode = generateMeetingCode();
+      console.log("checking code : ", newCode);
+      const res = await client.get(`/meeting/check-code/${newCode}`);
+      if (res.status === status.OK) {
+        isUnique = true;
+        setSnackbarMsg({
+          severity: "success",
+          message: "new meeting created successfully",
+        });
+        setCreatingNewMeet(false);
+      } else {
+        setSnackbarMsg({
+          severity: "warning",
+          message: res.data.message,
+        });
+      }
+    }
+
+    setIsHost(true);
     routeTo(`/${newCode}`);
   };
   return (
@@ -67,9 +122,11 @@ function Home() {
                 }}
                 onClick={createNewMeeting}
                 variant="contained"
+                disabled={creatingNewMeet}
               >
                 <VideoCallIcon />
-                Create New Meeting
+
+                {creatingNewMeet ? "Creating..." : "Create New Meeting"}
               </Button>
 
               <span className="font-bold text-white">OR</span>
@@ -92,8 +149,13 @@ function Home() {
                   }}
                   onClick={handleJoinVideoCall}
                   variant="contained"
+                  disabled={checkingCode || joinigMeet}
                 >
-                  Join
+                  {checkingCode
+                    ? "Checking code"
+                    : joinigMeet
+                    ? "Joining"
+                    : "Join"}
                 </Button>
               </div>
             </div>

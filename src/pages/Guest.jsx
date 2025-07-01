@@ -1,6 +1,7 @@
 import { useState, useRef, useContext } from "react";
 import { AuthContext } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import status from "http-status";
 
 import { TextField, Button, IconButton } from "@mui/material";
 import Navbar from "../components/Navbar";
@@ -9,11 +10,13 @@ function Guest() {
   let localVideoRef = useRef();
   const [username, setUsername] = useState("");
   const [meetingCode, setMeetingCode] = useState("");
-  const { setSnackbarOpen, setSnackbarMsg, isGuest, setUser } =
+  const { setSnackbarOpen, setSnackbarMsg, isGuest, setUser, client } =
     useContext(AuthContext);
+  const [checkingCode, setCheckingCode] = useState(false);
+  const [joinigMeet, setJoiningMeet] = useState(false);
 
   const routeTo = useNavigate();
-  function connect() {
+  async function connect() {
     if (username === "") {
       setSnackbarMsg({
         severity: "warning",
@@ -30,11 +33,41 @@ function Guest() {
       setSnackbarOpen(true);
       return;
     }
-    setUser({
-      username: `${username} (guest)`,
-      name: `${username} (guest)`,
-    });
-    routeTo(`/${meetingCode}`);
+    setCheckingCode(true);
+    try {
+      const response = await client.get(`/meeting/check-meet/${meetingCode}`);
+      if (response.status === status.OK) {
+        setJoiningMeet(true);
+        setUser({
+          username: `${username} (guest)`,
+          name: `${username} (guest)`,
+        });
+        return routeTo(`/${meetingCode}`);
+      } else {
+        setSnackbarMsg({
+          severity: "warning",
+          message: response.data.message,
+        });
+      }
+    } catch (error) {
+      if (error.response?.status === 404) {
+        setSnackbarMsg({
+          severity: "error",
+          message: "Meeting not found. Please check the code and try again.",
+        });
+        setSnackbarOpen(true);
+        console.error(error.response);
+      } else {
+        setSnackbarMsg({
+          severity: "error",
+          message: "Something went wrong. Try again later.",
+        });
+        setSnackbarOpen(true);
+        console.log(error.response);
+      }
+    }
+    setJoiningMeet(false);
+    setCheckingCode(false);
   }
 
   return (
@@ -115,8 +148,13 @@ function Guest() {
                 boxSizing: "border-box",
                 marginX: "10px",
               }}
+              disabled={checkingCode || joinigMeet}
             >
-              Go
+              {checkingCode
+                ? "Checking code..."
+                : joinigMeet
+                ? "Going to lobby..."
+                : "Check"}
             </Button>
           </div>
         </div>

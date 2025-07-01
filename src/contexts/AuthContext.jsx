@@ -6,12 +6,12 @@ import { useState, React } from "react";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
 import { useEffect } from "react";
-
+const apiUrl = import.meta.env.VITE_API_URL;
 export const AuthContext = createContext("");
 
 const client = axios.create({
-  baseURL: "http://localhost:8080/api/v1/users",
-  headers: { Authorization: "Bearer your_token" },
+  baseURL: apiUrl,
+  headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
 });
 
 export function AuthProvider({ children }) {
@@ -24,6 +24,8 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState();
   const [user, setUser] = useState({});
   const [isGuest, setIsGuest] = useState(true);
+  const [isHost, setIsHost] = useState(false);
+
   const handleClose = (event, reason) => {
     if (reason === "clickaway") return;
     setSnackbarOpen(false);
@@ -36,7 +38,7 @@ export function AuthProvider({ children }) {
       return false;
     }
     try {
-      let response = await client.get("/validate-token", {
+      let response = await client.get("/users/verify-user", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.status === status.OK) {
@@ -67,7 +69,7 @@ export function AuthProvider({ children }) {
   };
   const handleRegister = async (name, username, password) => {
     try {
-      let response = await client.post("/register", {
+      let response = await client.post("/users/register", {
         name,
         username,
         password,
@@ -91,7 +93,7 @@ export function AuthProvider({ children }) {
   };
   const handleLogin = async (username, password) => {
     try {
-      const response = await client.post("/login", {
+      const response = await client.post("/users/login", {
         username,
         password,
       });
@@ -147,6 +149,9 @@ export function AuthProvider({ children }) {
           validateToken,
           isGuest,
           setIsGuest,
+          isHost,
+          setIsHost,
+          client,
         }}
       >
         {children}

@@ -16,12 +16,9 @@ import {
   Box,
   Tab,
   Drawer,
-  List,
-  Divider,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
+  Tooltip,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 import { TabContext, TabList, TabPanel } from "@mui/lab";
 
@@ -43,15 +40,22 @@ import io from "socket.io-client";
 
 import { AuthContext } from "../contexts/AuthContext";
 import Navbar from "../components/Navbar";
+const socketUrl = import.meta.env.VITE_SOCKET_URL;
 
-const server_url = "http://localhost:8080/";
+const server_url = socketUrl;
 const peerConfigConnections = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
 };
 
 function VideoMeetComponent() {
-  const { setSnackbarOpen, setSnackbarMsg, validateToken, user, isGuest } =
-    useContext(AuthContext);
+  const {
+    setSnackbarOpen,
+    setSnackbarMsg,
+    validateToken,
+    user,
+    isGuest,
+    isHost,
+  } = useContext(AuthContext);
 
   let socketRef = useRef();
   let socketIdRef = useRef();
@@ -79,10 +83,12 @@ function VideoMeetComponent() {
   const [showInfo, setShowInfo] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [isFirstRender, setIsFirstRender] = useState(true);
-
   //for info panel
   const [openDrawer, setOpenDrawer] = useState(false);
   const [value, setValue] = useState("0");
+  const [checkedOne, setCheckedOne] = useState(true);
+  const [checkedTwo, setCheckedTwo] = useState(true);
+  const [checkedThree, setCheckedThree] = useState(true);
 
   const handleChange = (event, newValue) => {
     setValue(newValue);
@@ -264,8 +270,8 @@ function VideoMeetComponent() {
     return track;
   };
 
-  let black = ({ width = 600, initial = "A" } = {}) => {
-    const height = (width * 3) / 4;
+  let black = (width = 600, initial = "A") => {
+    const height = (width * 9) / 16;
     let canvas = Object.assign(document.createElement("canvas"), {
       width,
       height,
@@ -398,7 +404,7 @@ function VideoMeetComponent() {
         "join-call",
         window.location.href,
         username,
-        isGuest ? username : user.name
+        isGuest ? username + " (guest)" : user.name
       );
       const socketId = socketRef.current.id;
       socketRef.current.on("chat-message", addMessage);
@@ -704,6 +710,7 @@ function VideoMeetComponent() {
         {...props}
         onMouseEnter={(e) => (e.currentTarget.controls = true)}
         onMouseLeave={(e) => (e.currentTarget.controls = false)}
+        className="aspect-video max-w-[400px]"
       />
     );
   }
@@ -713,7 +720,9 @@ function VideoMeetComponent() {
       validateToken();
     };
     isValid();
-
+    if (isValid) {
+      setUsername(user.name);
+    }
     getPermission();
   }, []);
 
@@ -727,7 +736,7 @@ function VideoMeetComponent() {
     if (video) {
       newVideoTrack = window.localStream.getVideoTracks()[0];
     } else {
-      newVideoTrack = black(200, username[0]);
+      newVideoTrack = black(600, username[0]);
     }
     if (audio) {
       newAudioTrack = window.localStream.getAudioTracks()[0];
@@ -781,12 +790,25 @@ function VideoMeetComponent() {
       setNewMessages(0);
     }
   }, [showModal, newMessages]);
-  const VideoTile = React.memo(({ video, name, muted }) => (
-    <div key={video.socketId} className="max-w-[400px]">
-      <VideoPlayer stream={video.stream} muted={muted} className="rounded-lg" />
-      <h2 className="text-white text-center">{name}</h2>
-    </div>
-  ));
+  const VideoTile = React.memo(
+    ({ video, name, muted }) => (
+      <div key={video.socketId} className="max-w-[400px]">
+        <VideoPlayer
+          stream={video.stream}
+          muted={muted}
+          className="rounded-lg"
+        />
+        <h2 className="text-white text-center">{name}</h2>
+      </div>
+    ),
+    (prev, next) => {
+      return (
+        prev.video.stream === next.video.stream &&
+        prev.name === next.name &&
+        prev.muted === next.muted
+      );
+    }
+  );
   return (
     <div className="video-meet-component w-screen h-screen p-4 relative bg-[url('/images/call-bg.jpg')] bg-cover overflow-y-auto">
       {askForUsername === true ? (
@@ -808,12 +830,12 @@ function VideoMeetComponent() {
               </div>
 
               <div className="h-16 mt-4 flex justify-start items-center">
-                {isGuest || !username || username === "" ? (
+                {isGuest && (!username || username === "") ? (
                   <TextField
                     id="outlined-basic"
                     label="Enter name"
                     variant="outlined"
-                    value={username}
+                    value={isGuest ? username : user.name}
                     disabled={user.name ? true : false}
                     onChange={(e) => {
                       setUsername(e.target.value);
@@ -824,6 +846,13 @@ function VideoMeetComponent() {
                         "& fieldset": { borderColor: "white" }, // default border
                         "&:hover fieldset": { borderColor: "#90caf9" }, // on hover
                         "&.Mui-focused fieldset": { borderColor: "#1976d2" }, // on focus
+                        // "&.Mui-disabled": {
+                        //   "& fieldset": {
+                        //     borderColor: "#888888", // muted border color when disabled
+                        //   },
+                        //   backgroundColor: "#686565", // background for disabled state
+                        //   color: "white", // input text color for disabled
+                        // },
                       },
                       "& .MuiInputLabel-root": { color: "white" }, // label color
                       "& input:-webkit-autofill": {
@@ -849,7 +878,7 @@ function VideoMeetComponent() {
                     marginX: "10px",
                   }}
                 >
-                  Ask to Join
+                  {isHost ? "Start" : "Ask to join"}
                 </Button>
               </div>
             </section>
@@ -858,26 +887,38 @@ function VideoMeetComponent() {
       ) : (
         <>
           <div className="flex gap-4 w-full justify-between rounded-lg p-2 ">
-            <div className="flex items-start justify-start gap-4 flex-wrap w-full mb-24">
-              {videos.map((video) => (
-                <div key={video.socketId} className="max-w-[400px]">
+            <div className="flex items-start justify-start gap-[20px] flex-wrap w-full mb-24">
+              {/* {videos.map((video) => (
+                <div
+                  key={video.socketId}
+                  className="max-w-[400px] aspect-video rounded-lg"
+                >
                   <VideoPlayer
                     stream={video.stream}
                     className="rounded-lg"
                     muted={!speakerOn}
                   />
                   {/* <video ref={video.stream}></video> */}
-                  <h2 className="text-white text-center">
+              {/* <h2 className="text-white text-center">
                     {usernames[video.socketId] || video.socketId}
                   </h2>
                 </div>
+              {))}  */}
+              {videos.map((video) => (
+                <VideoTile
+                  key={video.socketId}
+                  video={video}
+                  name={usernames[video.socketId] || video.socketId}
+                  muted={!speakerOn}
+                />
               ))}
+
               <div key={video.socketId} className="max-w-[400px]">
                 <video
                   ref={localVideoRef}
                   autoPlay
                   muted
-                  className="rounded-lg "
+                  className="rounded-lg aspect-video"
                 />
                 <h2 className="text-white text-center">
                   {username}
@@ -916,7 +957,7 @@ function VideoMeetComponent() {
                               {new Date(message.time).toLocaleTimeString()}
                             </span>
                           </p>
-                          <p className="text-black font-normal">
+                          <p className="text-black font-normal whitespace-pre-line">
                             {message.data}
                           </p>
                         </div>
@@ -938,14 +979,22 @@ function VideoMeetComponent() {
                     onChange={(e) => {
                       setMessage(e.target.value);
                     }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault(); // prevent newline
+                        sendMessage(); // call your send handler
+                      }
+                    }}
                   />
-                  <Button
-                    variant="contained"
-                    sx={{ width: "10px", fontSize: "15px" }}
-                    onClick={sendMessage}
-                  >
-                    <SendIcon />
-                  </Button>
+                  <Tooltip title="Click or press enter to send. Press shift + enter for next line">
+                    <Button
+                      variant="contained"
+                      sx={{ width: "10px", fontSize: "15px" }}
+                      onClick={sendMessage}
+                    >
+                      <SendIcon />
+                    </Button>
+                  </Tooltip>
                 </div>
               </div>
             </div>
@@ -1056,7 +1105,7 @@ function VideoMeetComponent() {
                         aria-label="lab API tabs example"
                       >
                         <Tab label="Attendees" value="0" />
-                        <Tab label="Control" value="1" />
+                        {isHost ? <Tab label="Control" value="1" /> : <></>}
                         <Tab label="Other" value="2" />
                       </TabList>
                     </Box>
@@ -1077,7 +1126,41 @@ function VideoMeetComponent() {
                           : null}
                       </ul>
                     </TabPanel>
-                    <TabPanel value="1">Item One</TabPanel>
+                    {isHost ? (
+                      <TabPanel value="1">
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={checkedOne}
+                              onChange={(e) => setCheckedOne(e.target.checked)}
+                            />
+                          }
+                          label="Everyone can turn on mic"
+                        />
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={checkedTwo}
+                              onChange={(e) => setCheckedTwo(e.target.checked)}
+                            />
+                          }
+                          label="Everyone can turn on camera"
+                        />
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={checkedThree}
+                              onChange={(e) =>
+                                setCheckedThree(e.target.checked)
+                              }
+                            />
+                          }
+                          label="Everyone can share screen"
+                        />
+                      </TabPanel>
+                    ) : (
+                      <></>
+                    )}
                     <TabPanel value="2">Item Two</TabPanel>
                   </TabContext>
                 </Box>
