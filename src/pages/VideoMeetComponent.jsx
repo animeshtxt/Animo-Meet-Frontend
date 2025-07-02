@@ -106,15 +106,6 @@ function VideoMeetComponent() {
   };
 
   const routeTo = useNavigate();
-  // console.log("user.name", user.name);
-  // const handlePopoverOpen = (event) => {
-  //   setAnchorEl(event.currentTarget);
-  // };
-  // const handlePopoverClose = () => {
-  //   setAnchorEl(null);
-  // };
-  // const open = Boolean(anchorEl);
-  // const id = open ? "simple-popover" : undefined;
 
   const getPermission = async () => {
     try {
@@ -132,13 +123,20 @@ function VideoMeetComponent() {
       setAudio(hasAudio);
 
       if (hasVideo) {
+        console.log("Video available");
         finalTracks.push(mediaTracks.getVideoTracks()[0]);
       } else {
+        console.log("Video unavailable");
+
         finalTracks.push(black(600, user.name[0]));
       }
       if (hasAudio) {
+        console.log("Audio available");
+
         finalTracks.push(mediaTracks.getAudioTracks()[0]);
       } else {
+        console.log("Audio unavailable");
+
         finalTracks.push(silence());
       }
 
@@ -177,8 +175,9 @@ function VideoMeetComponent() {
         setScreenAvailable(false);
       }
     } catch (err) {
+      let initial = user.name && user.name.slice(0) !== "" ? user.name[0] : "U";
       let blackSilenceStream = new MediaStream([
-        black(600, user.name[0]),
+        black(600, initial),
         silence(),
       ]);
       window.localStream = blackSilenceStream;
@@ -187,7 +186,7 @@ function VideoMeetComponent() {
       }
       setVideoAvailable(false);
       setAudioAvailable(false);
-      console.dir(err);
+      console.log(err);
     }
   };
 
@@ -250,13 +249,6 @@ function VideoMeetComponent() {
   };
 
   let silence = () => {
-    // let ctx = new AudioContext();
-    // let oscillator = ctx.createOscillator();
-    // let dst = oscillator.connect(ctx.createMediaStreamDestination());
-
-    // oscillator.start();
-    // ctx.resume();
-    // return Object.assign(dst.stream.getAudioTracks()[0], { enabled: true });
     const ctx = new AudioContext();
     const dst = ctx.createMediaStreamDestination();
     const track = dst.stream.getAudioTracks()[0];
@@ -458,35 +450,7 @@ function VideoMeetComponent() {
 
             connections[socketListId].onaddstream = (event) => {
               console.log("Received remote stream:", event.stream);
-              // let videoExists = videoRef.current.find(
-              //   (video) => video.socketId === socketListId
-              // );
 
-              // if (videoExists) {
-              //   setVideos((videos) => {
-              //     const updatedVideos = videos.map((video) =>
-              //       video.socketId === socketListId
-              //         ? { ...video, stream: event.stream }
-              //         : video
-              //     );
-              //     videoRef.current = updatedVideos;
-              //     return updatedVideos;
-              //   });
-              // } else {
-              //   let newVideo = {
-              //     socketId: socketListId,
-              //     stream: event.stream,
-              //     autoPlay: true,
-              //     playsinline: true,
-              //   };
-              // setVideos((videos) => {
-              //   const updatedVideos = [...videos, newVideo];
-              //   videoRef.current.updatedVideos;
-              //   return updatedVideos;
-              // });
-              // }
-
-              // ------
               setVideos((prevVideos) => {
                 // Remove any existing video with this socketId
                 const filtered = prevVideos.filter(
@@ -514,7 +478,6 @@ function VideoMeetComponent() {
               console.log("window.localStream", window.localStream);
               connections[socketListId].addStream(window.localStream);
             } else {
-              // TODO
               let blackSilence = (...args) =>
                 new MediaStream([black(...args), silence()]);
               let stream = blackSilence();
@@ -557,17 +520,23 @@ function VideoMeetComponent() {
   //   }
 
   let connect = async () => {
-    if (!user.name && !username && username.length === 0) {
+    if (
+      isGuest &&
+      (!user.name || user.name.length === 0) &&
+      (!username || username.length === 0)
+    ) {
       setSnackbarOpen(true);
       setSnackbarMsg({
         severity: "warning",
-        message: "Enter username",
+        message: "Enter name",
       });
       return;
     }
     if (isGuest) {
       console.log("is a  guest");
-      setUsername(username + " (guest)");
+      user.name
+        ? setUsername(user.name + " (guest)")
+        : setUsername(username + " (guest)");
     } else {
       console.log("not guest");
       setUsername(user.name);
@@ -722,12 +691,55 @@ function VideoMeetComponent() {
 
   useEffect(() => {
     const isValid = async () => {
-      validateToken();
+      const res = await validateToken();
+      if (res) {
+        setUsername(user.name);
+      }
     };
     isValid();
-    if (isValid) {
-      setUsername(user.name);
-    }
+
+    const validateMeetCode = async () => {
+      try {
+        const response = await client.get(`/meeting/check-meet/${meetingCode}`);
+        if (response.status !== status.OK) {
+          setSnackbarMsg({ severity: "warning", message: "No such meeting" });
+          setSnackbarOpen(true);
+          routeTo("/");
+        }
+      } catch (e) {
+        console.log(e);
+        if (e.status === status.NOT_FOUND) {
+          setSnackbarMsg({
+            severity: "error",
+            message: `${e.response.data.message}`,
+          });
+        } else {
+          setSnackbarMsg({
+            severity: "error",
+            message: `Some error occured : ${e.response.data.message}`,
+          });
+        }
+
+        setSnackbarOpen(true);
+        routeTo("/");
+      }
+    };
+
+    validateMeetCode();
+    const checkIsHost = async () => {
+      try {
+        const response = await client.get("/meeting/check-host", {
+          params: { username: user.username, meetingCode },
+        });
+        if (response.status === status.OK) {
+          setIsHost(true);
+        }
+        console.log(response.data);
+      } catch (error) {
+        console.error("Error checking host:", error);
+      }
+    };
+    // checkIsHost();
     getPermission();
   }, []);
 
@@ -741,7 +753,12 @@ function VideoMeetComponent() {
     if (video) {
       newVideoTrack = window.localStream.getVideoTracks()[0];
     } else {
-      newVideoTrack = black(600, username[0]);
+      let initial = user.name && user.name.trim() !== "" ? user.name[0] : "U";
+      // if (isGuest) {
+      //   initial = "G";
+      // }
+
+      newVideoTrack = black(600, initial);
     }
     if (audio) {
       newAudioTrack = window.localStream.getAudioTracks()[0];
@@ -833,6 +850,7 @@ function VideoMeetComponent() {
             <h1 className="text-3xl font-bold text-center w-full text-white">
               Enter the Lobby
             </h1>
+
             <section className="flex flex-col justify-center items-center flex-wrap h-full ">
               <div className="m-[10px] rounded-lg max-w-[80vw]">
                 <video
@@ -844,7 +862,7 @@ function VideoMeetComponent() {
               </div>
 
               <div className="h-16 mt-4 flex justify-start items-center">
-                {isGuest && (!username || username === "") ? (
+                {isGuest && (!user.name || user.name === "") ? (
                   <TextField
                     id="outlined-basic"
                     label="Enter name"
@@ -890,11 +908,22 @@ function VideoMeetComponent() {
                     height: "50px",
                     boxSizing: "border-box",
                     marginX: "10px",
+                    "&.Mui-disabled": {
+                      backgroundColor: "#1565c0b5",
+                      color: "#e9f1f9b5",
+                    },
                   }}
                 >
                   {isHost ? "Start" : "Ask to join"}
                 </Button>
               </div>
+              {isGuest ? (
+                <h3 className="text-xl font-bold text-center w-full text-white mt-4">
+                  You are joining as a Guest
+                </h3>
+              ) : (
+                <></>
+              )}
             </section>
           </div>
         </>

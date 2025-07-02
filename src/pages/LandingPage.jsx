@@ -42,7 +42,7 @@ function LandingPage() {
         <div>
           <img
             id="mobile-image"
-            style={{ width: "30vw" }}
+            style={{ height: "100%", width: "auto" }}
             src="images/mobile.png"
             alt=""
           />

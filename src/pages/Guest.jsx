@@ -8,7 +8,7 @@ import Navbar from "../components/Navbar";
 
 function Guest() {
   let localVideoRef = useRef();
-  const [username, setUsername] = useState("");
+  const [guestName, setGuestName] = useState("");
   const [meetingCode, setMeetingCode] = useState("");
   const { setSnackbarOpen, setSnackbarMsg, isGuest, setUser, client } =
     useContext(AuthContext);
@@ -17,7 +17,7 @@ function Guest() {
 
   const routeTo = useNavigate();
   async function connect() {
-    if (username === "") {
+    if (guestName === "") {
       setSnackbarMsg({
         severity: "warning",
         message: "Enter name",
@@ -39,8 +39,8 @@ function Guest() {
       if (response.status === status.OK) {
         setJoiningMeet(true);
         setUser({
-          username: `${username} (guest)`,
-          name: `${username} (guest)`,
+          username: `${guestName}`,
+          name: `${guestName}`,
         });
         return routeTo(`/${meetingCode}`);
       } else {
@@ -74,8 +74,8 @@ function Guest() {
     <div className="p-4 w-full h-screen bg-[url('/images/call-bg.jpg')] bg-cover overflow-y-auto">
       <Navbar />
       <main className=" flex justify-center items-center flex-col h-full">
-        <div className="bg-black p-4 h-[400px] flex flex-col justify-start gap-8 items-center rounded-xl">
-          <h1 className="text-3xl font-bold text-center w-full text-white">
+        <div className="bg-white p-4 h-[400px] flex flex-col justify-start gap-8 items-center ">
+          <h1 className="text-3xl font-bold text-center w-full text-black">
             Join as Guest
           </h1>
 
@@ -84,29 +84,29 @@ function Guest() {
               id="outlined-basic"
               label="Enter name"
               variant="outlined"
-              value={username}
+              value={guestName}
               onChange={(e) => {
-                setUsername(e.target.value);
+                setGuestName(e.target.value);
               }}
               sx={{
-                input: { color: "white" }, // input text color
+                input: { color: "black" }, // input text color
                 "& .MuiOutlinedInput-root": {
-                  "& fieldset": { borderColor: "white" }, // default border
+                  "& fieldset": { borderColor: "black" }, // default border
                   "&:hover fieldset": { borderColor: "#90caf9" }, // on hover
                   "&.Mui-focused fieldset": { borderColor: "#1976d2" }, // on focus
                 },
-                "& .MuiInputLabel-root": { color: "white" }, // label color
+                "& .MuiInputLabel-root": { color: "black" }, // label color
                 "& input:-webkit-autofill": {
-                  WebkitBoxShadow: "0 0 0 1000px #23272f inset",
-                  WebkitTextFillColor: "white",
-                  caretColor: "white",
+                  WebkitBoxShadow: "0 0 0 1000px #ffffff inset", // grey background
+                  WebkitTextFillColor: "black",
+                  caretColor: "#808285",
                 },
               }}
               InputLabelProps={{
-                style: { color: "white" }, // label color (alternative)
+                style: { color: "black" }, // label color (alternative)
               }}
               InputProps={{
-                style: { color: "white" }, // input text color (alternative)
+                style: { color: "black" }, // input text color (alternative)
               }}
             />
 
@@ -119,24 +119,24 @@ function Guest() {
                 setMeetingCode(e.target.value);
               }}
               sx={{
-                input: { color: "white" }, // input text color
+                input: { color: "black" }, // input text color
                 "& .MuiOutlinedInput-root": {
-                  "& fieldset": { borderColor: "white" }, // default border
+                  "& fieldset": { borderColor: "black" }, // default border
                   "&:hover fieldset": { borderColor: "#90caf9" }, // on hover
                   "&.Mui-focused fieldset": { borderColor: "#1976d2" }, // on focus
                 },
-                "& .MuiInputLabel-root": { color: "white" }, // label color
+                "& .MuiInputLabel-root": { color: "black" }, // label color
                 "& input:-webkit-autofill": {
-                  WebkitBoxShadow: "0 0 0 1000px #23272f inset",
-                  WebkitTextFillColor: "white",
-                  caretColor: "white",
+                  WebkitBoxShadow: "0 0 0 1000px #ffffff inset", // grey background
+                  WebkitTextFillColor: "black",
+                  caretColor: "#fcfcfc",
                 },
               }}
               InputLabelProps={{
-                style: { color: "white" }, // label color (alternative)
+                style: { color: "black" }, // label color (alternative)
               }}
               InputProps={{
-                style: { color: "white" }, // input text color (alternative)
+                style: { color: "black" }, // input text color (alternative)
               }}
             />
 
@@ -147,6 +147,10 @@ function Guest() {
                 height: "50px",
                 boxSizing: "border-box",
                 marginX: "10px",
+                "&.Mui-disabled": {
+                  backgroundColor: "#1565c0b5", // your custom disabled background
+                  color: "#e9f1f9b5", // your custom disabled text color
+                },
               }}
               disabled={checkingCode || joinigMeet}
             >

@@ -1,8 +1,19 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../contexts/AuthContext";
-import { Button, Popover, Typography } from "@mui/material";
-
+import {
+  Button,
+  Popover,
+  Typography,
+  AppBar,
+  Box,
+  Toolbar,
+  Menu,
+  MenuItem,
+  Container,
+} from "@mui/material";
+import AdbIcon from "@mui/icons-material/Adb";
+import MenuIcon from "@mui/icons-material/Menu";
 function Navbar() {
   const [anchorEl, setAnchorEl] = useState(null);
   const [isLogin, setIsLogin] = useState(false);
@@ -17,7 +28,14 @@ function Navbar() {
   const id = open ? "simple-popover" : undefined;
 
   const url = useLocation();
-
+  const [anchorEl2, setAnchorEl2] = useState(null);
+  const menuOpen = Boolean(anchorEl2);
+  const handleMenuClick = (event) => {
+    setAnchorEl2(event.currentTarget);
+  };
+  const handleMenuClose = () => {
+    setAnchorEl2(null);
+  };
   const {
     token,
     setToken,
@@ -36,12 +54,63 @@ function Navbar() {
     setIsLogin(url.pathname === "/login");
     setIsSignup(url.pathname === "/register");
   }, []);
+
+  const navButtons = (
+    <>
+      {!isGuest || isLogin || isSignUp ? (
+        <Button
+          sx={{
+            backgroundColor: "#e67c0e",
+            // width: { xs: "20px", sm: "50px" },
+          }}
+          className=""
+        >
+          <Link
+            to="/guest"
+            style={{ color: "white", textDecoration: "none" }}
+            className="text-xs sm:text-lg"
+          >
+            Join as Guest
+          </Link>
+        </Button>
+      ) : null}
+      {!isLogin ? (
+        <Button sx={{ backgroundColor: "green" }}>
+          <Link
+            to="/login"
+            style={{ color: "white", textDecoration: "none" }}
+            className="text-xs sm:text-lg"
+          >
+            Login
+          </Link>
+        </Button>
+      ) : null}
+      {!isSignUp ? (
+        <Button sx={{ backgroundColor: "blue" }}>
+          <Link
+            to="/register"
+            style={{ color: "white", textDecoration: "none" }}
+            className="text-xs sm:text-lg"
+          >
+            {" "}
+            Register
+          </Link>
+        </Button>
+      ) : null}
+    </>
+  );
+
   return (
     <nav className="navbar flex justify-between  items-center sticky top-2">
       <div id="brand-name">
         <Link to={"/"}>
-          <h1 className="text-3xl font-bold text-center text-white max-[600px]:text-xl">
-            Animo Meet
+          <h1 className="text-3xl font-bold text-center text-white max-[600px]:text-xl flex items-center gap-2">
+            <img
+              src="/animo-meet-logo.png"
+              alt="logo"
+              className="h-8 w-auto "
+            />
+            <span className="leading-none">Animo Meet</span>
           </h1>
         </Link>
       </div>
@@ -59,10 +128,9 @@ function Navbar() {
               minWidth: 0, // Prevents MUI from enforcing a minimum width
               fontSize: "25px", // Adjust if text overflows
               lineHeight: 1,
-              backgroundColor: "green",
+              backgroundColor: "#e65842",
               color: "white",
             }}
-            // className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12  p-0 text-white bg-green-600 text-lg sm:text-xl md:text-2xl leading-none"
           >
             {user.name[0].toUpperCase()}
           </Button>
@@ -108,45 +176,46 @@ function Navbar() {
           </Popover>
         </>
       ) : (
-        <div className="nav-links flex gap-4">
-          {!isGuest || isLogin || isSignUp ? (
+        <>
+          <div className="nav-links flex gap-4 max-[600px]:hidden">
+            {navButtons}
+          </div>
+          <div className="min-[600px]:hidden">
             <Button
-              sx={{ backgroundColor: "#e67c0e" }}
-              className="h-6 w-4 sm:h-auto sm:w-auto"
+              id="basic-button"
+              aria-controls={menuOpen ? "basic-menu" : undefined}
+              aria-haspopup="true"
+              aria-expanded={menuOpen ? "true" : undefined}
+              onClick={handleMenuClick}
+              style={{ display: window.innerWidth >= 600 ? "none" : "block" }}
             >
-              <Link
-                to="/guest"
-                style={{ color: "white", textDecoration: "none" }}
-                className="text-xs sm:text-lg"
-              >
-                Join as Guest
-              </Link>
+              <MenuIcon sx={{ color: "white" }} />
             </Button>
-          ) : null}
-          {!isLogin ? (
-            <Button sx={{ backgroundColor: "green" }}>
-              <Link
-                to="/login"
-                style={{ color: "white", textDecoration: "none" }}
-                className="text-xs sm:text-lg"
-              >
-                Login
-              </Link>
-            </Button>
-          ) : null}
-          {!isSignUp ? (
-            <Button sx={{ backgroundColor: "blue" }}>
-              <Link
-                to="/register"
-                style={{ color: "white", textDecoration: "none" }}
-                className="text-xs sm:text-lg"
-              >
-                {" "}
-                Register
-              </Link>
-            </Button>
-          ) : null}
-        </div>
+          </div>
+          <Menu
+            id="basic-menu"
+            anchorEl={anchorEl2}
+            open={menuOpen}
+            onClose={handleMenuClose}
+            slotProps={{
+              list: {
+                "aria-labelledby": "basic-button",
+              },
+            }}
+            anchorOrigin={{
+              vertical: "bottom",
+              horizontal: "right", // align to right edge of anchor
+            }}
+            transformOrigin={{
+              vertical: "top",
+              horizontal: "right", // align right edge of Popover to anchor
+            }}
+          >
+            <MenuItem className="flex flex-col gap-2 items-start justify-start">
+              {navButtons}
+            </MenuItem>
+          </Menu>
+        </>
       )}
     </nav>
   );

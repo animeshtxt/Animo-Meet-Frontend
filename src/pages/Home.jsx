@@ -27,8 +27,9 @@ function Home() {
     setCheckingCode(true);
     try {
       const response = await client.get(`/meeting/check-meet/${meetingCode}`);
-      if (response.status === status.FOUND) {
+      if (response.status === status.OK) {
         setJoiningMeet(true);
+        console.log("Meeting found redirecting to ", meetingCode);
         routeTo(`/${meetingCode}`);
       } else {
         setSnackbarMsg({
@@ -119,6 +120,10 @@ function Home() {
                   fontWeight: "bold",
                   display: "flex",
                   gap: "10px",
+                  "&.Mui-disabled": {
+                    backgroundColor: "#1565c0b5",
+                    color: "#e9f1f9b5",
+                  },
                 }}
                 onClick={createNewMeeting}
                 variant="contained"
@@ -146,6 +151,10 @@ function Home() {
                     fontWeight: "bold",
                     padding: "0 16px", // optional tweak
                     minWidth: "auto",
+                    "&.Mui-disabled": {
+                      backgroundColor: "#1565c0b5",
+                      color: "#e9f1f9b5",
+                    },
                   }}
                   onClick={handleJoinVideoCall}
                   variant="contained"
