@@ -5,7 +5,7 @@ function LandingPage() {
   return (
     <div className="landing-page">
       <Navbar />
-      <div id="connect">
+      <div id="connect" className="flex justify-center items-center gap-10">
         <div>
           <h1
             style={{ color: "white" }}

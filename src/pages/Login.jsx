@@ -57,7 +57,7 @@ export default function Login() {
         const tkn = serverMsg.token;
         setToken(tkn);
         // validateToken(tkn);
-        routeTo("/home");
+        window.location.href = "/home";
       }
     } catch (e) {
       console.log(e);
@@ -77,13 +77,11 @@ export default function Login() {
     checkAuth();
   }, []);
   return (
-    <div className="bg-[url('/images/call-bg.jpg')] bg-cover p-4 w-full h-screen overflow-y-auto p-2">
+    <div className="bg-[url('/images/call-bg.avif')] bg-cover p-1 w-full h-screen overflow-y-auto flex flex-col">
       <Navbar />
-      <main className="login-container flex flex-col justify-center items-center h-full">
+      <main className="flex-grow login-container flex flex-col justify-center items-center ">
         <div className="form-container">
-          <h1 className="text-3xl font-bold text-center w-full">
-            Leo Conference
-          </h1>
+          <h1 className="text-3xl font-bold text-center w-full">Animo Meet</h1>
 
           <h2 className="text-xl font-bold text-center w-full">Sign In</h2>
           <form action="">
@@ -160,7 +158,7 @@ export default function Login() {
           <p style={{ width: "100%", textAlign: "center", margin: "10px" }}>
             Don't have an account?{" "}
             <Link
-              to="/register"
+              to="/signup"
               style={{ color: "blue", textDecoration: "none" }}
             >
               Sign up

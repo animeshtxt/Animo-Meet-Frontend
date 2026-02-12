@@ -18,6 +18,7 @@ function Navbar() {
   const [anchorEl, setAnchorEl] = useState(null);
   const [isLogin, setIsLogin] = useState(false);
   const [isSignUp, setIsSignup] = useState(false);
+  const [isGuestPage, setIsGuestPage] = useState(false);
   const handlePopoverOpen = (event) => {
     setAnchorEl(event.currentTarget);
   };
@@ -49,15 +50,22 @@ function Navbar() {
   } = useContext(AuthContext);
   const routeTo = useNavigate();
   useEffect(() => {
-    validateToken();
-    setIsGuest(url.pathname === "/guest");
+    // async function validateUser() {
+    //   const response = await validateToken();
+    // }
+    // try {
+    //   validateUser();
+    // } catch (e) {
+    //   console.log(e);
+    // }
+    setIsGuestPage(url.pathname === "/guest");
     setIsLogin(url.pathname === "/login");
     setIsSignup(url.pathname === "/register");
-  }, []);
+  }, [token]);
 
   const navButtons = (
     <>
-      {!isGuest || isLogin || isSignUp ? (
+      {!isGuestPage || isLogin || isSignUp ? (
         <Button
           sx={{
             backgroundColor: "#e67c0e",
@@ -88,12 +96,12 @@ function Navbar() {
       {!isSignUp ? (
         <Button sx={{ backgroundColor: "blue" }}>
           <Link
-            to="/register"
+            to="/signup"
             style={{ color: "white", textDecoration: "none" }}
             className="text-xs sm:text-lg"
           >
             {" "}
-            Register
+            Sign Up
           </Link>
         </Button>
       ) : null}
@@ -101,7 +109,7 @@ function Navbar() {
   );
 
   return (
-    <nav className="navbar flex justify-between  items-center sticky top-2">
+    <nav className="navbar p-2 flex justify-between  items-center sticky top-2">
       <div id="brand-name">
         <Link to={"/"}>
           <h1 className="text-3xl font-bold text-center text-white max-[600px]:text-xl flex items-center gap-2">
@@ -155,14 +163,14 @@ function Navbar() {
                 onClick={async () => {
                   localStorage.removeItem("token");
                   setToken("");
-                  setUser({});
+                  setUser({ type: "guest" });
 
                   await setSnackbarMsg({
                     severity: "success",
                     message: "Logged out successfully",
                   });
                   setSnackbarOpen(true);
-                  routeTo("/");
+                  window.location.href = "/";
                 }}
                 sx={{
                   color: "white",

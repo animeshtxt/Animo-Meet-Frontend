@@ -76,7 +76,7 @@ export default function Signup() {
     const { serverMsg, serverStatus } = await handleRegister(
       name,
       username,
-      password
+      password,
     );
     setSnackbarMsg({
       severity: severityStat[serverStatus] || "failure",
@@ -163,11 +163,11 @@ export default function Signup() {
   }, [username]);
 
   return (
-    <div className="bg-[url('/images/call-bg.jpg')] bg-cover p-4 w-full h-screen overflow-y-auto p-2">
+    <div className="bg-[url('/images/call-bg.avif')] bg-cover p-1 w-full h-screen overflow-y-auto p-2 flex flex-col">
       <Navbar />
-      <main className="login-container w-full h-full flex flex-col justify-center items-center">
+      <main className="flex-grow login-container w-full h-full flex flex-col justify-center items-center">
         <div className="form-container">
-          <h1 class="text-3xl font-bold text-center w-full">Leo Conference</h1>
+          <h1 class="text-3xl font-bold text-center w-full">Animo Meet</h1>
 
           <h2 className="text-xl font-bold text-center w-full">SignUp</h2>
           <form action="">

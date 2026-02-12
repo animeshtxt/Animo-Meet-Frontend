@@ -19,6 +19,7 @@ const withAuth = (WrappedComponent) => {
 
     useEffect(() => {
       const checkAuth = async () => {
+        console.log("Calling validateToken from withAuth");
         const isValid = await validateToken();
         if (!isValid) {
           setSnackbarMsg({

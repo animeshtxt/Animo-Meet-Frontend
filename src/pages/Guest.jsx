@@ -1,7 +1,9 @@
-import { useState, useRef, useContext } from "react";
-import { AuthContext } from "../contexts/AuthContext";
+import { useState, useRef, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import status from "http-status";
+
+import { MediaContext } from "../contexts/MediaContext";
+import { AuthContext } from "../contexts/AuthContext";
 
 import { TextField, Button, IconButton } from "@mui/material";
 import Navbar from "../components/Navbar";
@@ -10,10 +12,13 @@ function Guest() {
   let localVideoRef = useRef();
   const [guestName, setGuestName] = useState("");
   const [meetingCode, setMeetingCode] = useState("");
-  const { setSnackbarOpen, setSnackbarMsg, isGuest, setUser, client } =
-    useContext(AuthContext);
   const [checkingCode, setCheckingCode] = useState(false);
   const [joinigMeet, setJoiningMeet] = useState(false);
+
+  const isFirstRender = useRef(true);
+
+  const { setSnackbarOpen, setSnackbarMsg, isGuest, user, setUser, client } =
+    useContext(AuthContext);
 
   const routeTo = useNavigate();
   async function connect() {
@@ -39,15 +44,17 @@ function Guest() {
       if (response.status === status.OK) {
         setJoiningMeet(true);
         setUser({
-          username: `${guestName}`,
-          name: `${guestName}`,
+          username: `${guestName.toLowerCase()} (Guest)`,
+          name: `${guestName} (Guest)`,
+          type: "guest",
         });
-        return routeTo(`/${meetingCode}`);
+        // Redirect to lobby logic is in useEffect
       } else {
         setSnackbarMsg({
           severity: "warning",
           message: response.data.message,
         });
+        setJoiningMeet(false);
       }
     } catch (error) {
       if (error.response?.status === 404) {
@@ -65,15 +72,33 @@ function Guest() {
         setSnackbarOpen(true);
         console.log(error.response);
       }
+      setJoiningMeet(false);
     }
-    setJoiningMeet(false);
     setCheckingCode(false);
   }
 
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      console.log("First render");
+      return;
+    }
+    if (
+      user &&
+      user.type === "guest" &&
+      user.username &&
+      user.username.length !== 0 &&
+      joinigMeet
+    ) {
+      console.dir(user);
+      routeTo(`/${meetingCode}`);
+    }
+  }, [user, joinigMeet, meetingCode, routeTo]);
+
   return (
-    <div className="p-4 w-full h-screen bg-[url('/images/call-bg.jpg')] bg-cover overflow-y-auto">
+    <div className="p-1 w-full h-screen bg-[url('/images/call-bg.avif')]  bg-cover overflow-y-auto flex flex-col">
       <Navbar />
-      <main className=" flex justify-center items-center flex-col h-full">
+      <main className="flex-grow flex justify-center items-center flex-col ">
         <div className="bg-white p-4 h-[400px] flex flex-col justify-start gap-8 items-center ">
           <h1 className="text-3xl font-bold text-center w-full text-black">
             Join as Guest
@@ -157,8 +182,8 @@ function Guest() {
               {checkingCode
                 ? "Checking code..."
                 : joinigMeet
-                ? "Going to lobby..."
-                : "Check"}
+                  ? "Going to lobby..."
+                  : "Check"}
             </Button>
           </div>
         </div>

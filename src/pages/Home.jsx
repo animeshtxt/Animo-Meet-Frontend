@@ -1,22 +1,33 @@
 import { useNavigate } from "react-router-dom";
-import withAuth from "../utils/withAuth";
-import { useState, useContext } from "react";
+import { Link } from "react-router";
+import { useState, useContext, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import { Button, TextField } from "@mui/material";
 import VideoCallIcon from "@mui/icons-material/VideoCall";
 import { AuthContext } from "../contexts/AuthContext";
 import status from "http-status";
+import { logger } from "../utils/logger";
 
 function Home() {
   let routeTo = useNavigate();
   const [meetingCode, setMeetingCode] = useState("");
-  const { setSnackbarMsg, setSnackbarOpen, setIsHost, client } =
-    useContext(AuthContext);
+  const {
+    setSnackbarMsg,
+    setSnackbarOpen,
+    setIsHost,
+    client,
+    user,
+    setUser,
+    token,
+    isGuest,
+  } = useContext(AuthContext);
   const [creatingNewMeet, setCreatingNewMeet] = useState(false);
   const [checkingCode, setCheckingCode] = useState(false);
   const [joinigMeet, setJoiningMeet] = useState(false);
-  let handleJoinVideoCall = async () => {
-    if (meetingCode === "") {
+  const [previousMeets, setPreviousMeets] = useState([]);
+
+  let handleJoinVideoCall = async (m) => {
+    if (m === "") {
       setSnackbarMsg({
         severity: "warning",
         message: "Enter a valid meeting code",
@@ -26,11 +37,11 @@ function Home() {
     }
     setCheckingCode(true);
     try {
-      const response = await client.get(`/meeting/check-meet/${meetingCode}`);
+      const response = await client.get(`/meeting/check-meet/${m}`);
       if (response.status === status.OK) {
         setJoiningMeet(true);
-        console.log("Meeting found redirecting to ", meetingCode);
-        routeTo(`/${meetingCode}`);
+        logger.dev("Meeting found redirecting to ", m);
+        routeTo(`/${m}`);
       } else {
         setSnackbarMsg({
           severity: "warning",
@@ -53,13 +64,13 @@ function Home() {
         setSnackbarOpen(true);
       }
     }
-    setCheckingCode(false);
+    // setCheckingCode(false);
     setJoiningMeet(false);
   };
   function generateMeetingCode() {
     const segment = (length) =>
       Array.from({ length }, () =>
-        String.fromCharCode(97 + Math.floor(Math.random() * 26))
+        String.fromCharCode(97 + Math.floor(Math.random() * 26)),
       ).join("");
 
     return `${segment(3)}-${segment(4)}-${segment(3)}`;
@@ -71,7 +82,7 @@ function Home() {
     let newCode;
     while (!isUnique) {
       newCode = generateMeetingCode();
-      console.log("checking code : ", newCode);
+      logger.dev("checking code : ", newCode);
       const res = await client.get(`/meeting/check-code/${newCode}`);
       if (res.status === status.OK) {
         isUnique = true;
@@ -91,10 +102,40 @@ function Home() {
     setIsHost(true);
     routeTo(`/${newCode}`);
   };
+
+  useEffect(() => {
+    logger.dev("Rendering home.jsx");
+    const getPrevMeets = async () => {
+      try {
+        const res = await client.get(`/meeting/prev-meets/${user.username}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.status === status.OK) {
+          logger.dev("found");
+          logger.dev(res.data);
+          setPreviousMeets(res.data);
+        } else {
+          logger.dev("not found");
+
+          setSnackbarMsg({
+            severity: "warning",
+            message: res.data.message,
+          });
+        }
+      } catch (e) {
+        logger.error(e);
+      }
+    };
+
+    if (user.type === "registered") {
+      getPrevMeets();
+    }
+  }, []);
+
   return (
-    <div className="h-screen w-full p-4 bg-[url('/images/call-bg.jpg')] bg-cover overflow-y-auto">
+    <div className="h-screen w-full p-1 bg-[url('/images/call-bg.avif')]  bg-cover overflow-y-auto flex flex-col gap-[20px]">
       <Navbar />
-      <main className="h-full flex flex-wrap justify-evenly items-center gap-[50px] ">
+      <main className="flex flex-grow flex-wrap justify-center items-center gap-[50px] ">
         <div className="p-2 border border-black/20 rounded-xl flex gap-8 flex-wrap items-center max-[1230px]:flex-col">
           <section>
             <img
@@ -113,28 +154,62 @@ function Home() {
               </h3>
             </div>
             <div className="flex gap-2 items-center flex-wrap flex-col mt-8">
-              <Button
-                sx={{
-                  color: "white",
-                  backgroundColor: "#2c7eea",
-                  fontWeight: "bold",
-                  display: "flex",
-                  gap: "10px",
-                  "&.Mui-disabled": {
-                    backgroundColor: "#1565c0b5",
-                    color: "#e9f1f9b5",
-                  },
-                }}
-                onClick={createNewMeeting}
-                variant="contained"
-                disabled={creatingNewMeet}
-              >
-                <VideoCallIcon />
+              {!isGuest && (
+                <>
+                  <Button
+                    sx={{
+                      color: "white",
+                      backgroundColor: "#2c7eea",
+                      fontWeight: "bold",
+                      display: "flex",
+                      gap: "10px",
+                      "&.Mui-disabled": {
+                        backgroundColor: "#1565c0b5",
+                        color: "#e9f1f9b5",
+                      },
+                    }}
+                    onClick={createNewMeeting}
+                    variant="contained"
+                    disabled={creatingNewMeet}
+                  >
+                    <VideoCallIcon />
 
-                {creatingNewMeet ? "Creating..." : "Create New Meeting"}
-              </Button>
+                    {creatingNewMeet ? "Creating..." : "Create New Meeting"}
+                  </Button>
 
-              <span className="font-bold text-white">OR</span>
+                  <span className="font-bold text-white">OR</span>
+                </>
+              )}
+              {isGuest && (
+                <>
+                  <span className="font-bold text-white">
+                    You are joining as a Guest.{" "}
+                    <Link to="/login" style={{ color: "#0be00b" }}>
+                      Login
+                    </Link>{" "}
+                    or{" "}
+                    <Link to="/register" style={{ color: "#0be00b" }}>
+                      Signup
+                    </Link>{" "}
+                    to create meeting.
+                  </span>
+                  <span>
+                    <input
+                      type="text"
+                      placeholder="Enter your name"
+                      value={user.name}
+                      onChange={(e) =>
+                        setUser({
+                          ...user,
+                          name: e.target.value,
+                          username: `${e.target.value}_guest`,
+                        })
+                      }
+                      className="border h-[36px] py-[2px] px-2 focus:outline-[#2c7eea] text-white"
+                    />
+                  </span>
+                </>
+              )}
               <div className="flex items-center gap-2">
                 <input
                   type="text"
@@ -156,16 +231,72 @@ function Home() {
                       color: "#e9f1f9b5",
                     },
                   }}
-                  onClick={handleJoinVideoCall}
+                  onClick={() => {
+                    handleJoinVideoCall(meetingCode);
+                  }}
                   variant="contained"
                   disabled={checkingCode || joinigMeet}
                 >
                   {checkingCode
                     ? "Checking code"
                     : joinigMeet
-                    ? "Joining"
-                    : "Join"}
+                      ? "Joining"
+                      : "Join"}
                 </Button>
+              </div>
+              <div style={{ textAlign: "center" }}>
+                {previousMeets.length > 0 ? (
+                  <div style={{ marginTop: "10px" }}>
+                    <h1 style={{ color: "white" }}>Previous meets</h1>
+                    {previousMeets.map((m, i) => {
+                      return (
+                        <p
+                          key={i}
+                          style={{
+                            color: "white",
+                            marginBottom: "20px",
+                            marginTop: "20px",
+                            textAlign: "center",
+                          }}
+                        >
+                          {m}
+                          <Button
+                            sx={{
+                              height: "30px",
+                              color: "white",
+                              backgroundColor: "#5a779d",
+                              fontWeight: "bold",
+                              padding: "0 16px", // optional tweak
+                              marginLeft: "20px",
+                              minWidth: "auto",
+                              "&.Mui-disabled": {
+                                backgroundColor: "#2664abb5",
+                                color: "#e9f1f9b5",
+                              },
+                              ":hover": {
+                                backgroundColor: "#2c7eea",
+                                color: "rgba(255, 255, 255, 1)",
+                              },
+                            }}
+                            onClick={() => {
+                              handleJoinVideoCall(m);
+                            }}
+                            variant="contained"
+                            disabled={checkingCode || joinigMeet}
+                          >
+                            {checkingCode
+                              ? "Checking code"
+                              : joinigMeet
+                                ? "Joining"
+                                : "Join"}
+                          </Button>
+                        </p>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <></>
+                )}
               </div>
             </div>
           </section>
@@ -174,5 +305,6 @@ function Home() {
     </div>
   );
 }
-const AuthHome = withAuth(Home);
-export default AuthHome;
+// const AuthHome = withAuth(Home);
+// export default AuthHome;
+export default Home;
