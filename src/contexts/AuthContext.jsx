@@ -15,61 +15,67 @@ const client = axios.create({
 });
 
 export function AuthProvider({ children }) {
-  // const authContext = useContext(AuthContext);
-  // const router = useNavigate();
-
-  // snackbar
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMsg, setSnackbarMsg] = useState({});
   const [token, setToken] = useState();
   const [user, setUser] = useState({});
   const [isGuest, setIsGuest] = useState(true);
   const [isHost, setIsHost] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const handleClose = (event, reason) => {
     if (reason === "clickaway") return;
     setSnackbarOpen(false);
   };
   const validateToken = async () => {
+    console.log("validate token called");
     const token = localStorage.getItem("token");
     if (!token || token === "") {
       setIsGuest(true);
+      setUser({
+        type: "guest",
+      });
       console.log("Token not present");
+      setLoading(false);
       return false;
     }
+    console.log("Token found, validating...");
     try {
       let response = await client.get("/users/verify-user", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.status === status.OK) {
         setToken(token);
-        setUser({ username: response.data.username, name: response.data.name });
-        console.log("Token verified, user : ", response.data.name);
+        setUser({
+          username: response.data.username,
+          name: response.data.name,
+          type: "registered",
+        });
+        console.log("Token verified, user : ", response.data);
         setIsGuest(false);
+        setLoading(false);
+
         return true;
       } else {
         console.log(
-          `status : ${response.status} message: ${response.data.message}`
+          `status : ${response.status} message: ${response.data.message}`,
         );
       }
-    } catch (e) {
-      console.dir(e.response);
-      const serverMsg = e.response?.data?.message || "Unknown error";
-      const serverStatus = e.response?.status || 500;
-      // setSnackbarMsg({
-      //   severity: "error",
-      //   message: serverMsg,
-      // });
-      // setSnackbarOpen(true);
+    } catch (err) {
+      console.log(err);
       setIsGuest(true);
+      setUser({ type: "guest" });
+      setLoading(false);
+
       return false;
     }
 
+    setLoading(false);
     return false;
   };
   const handleRegister = async (name, username, password) => {
     try {
-      let response = await client.post("/users/register", {
+      let response = await client.post("/users/signup", {
         name,
         username,
         password,
@@ -102,8 +108,12 @@ export function AuthProvider({ children }) {
         console.log("token : " + response.data.token);
         localStorage.setItem("token", response.data.token);
         setToken(response.data.token);
-        setUser({ username: response.data.username, name: response.data.name });
-        console.log("Token : ", token);
+        setUser({
+          username: response.data.username,
+          name: response.data.name,
+          type: "registered",
+        });
+        // console.log("Token : ", token);
         // router("/home");
         return { serverMsg: response.data.message, serverStatus: status.OK };
       } else {
@@ -122,16 +132,12 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // useEffect(() => {
-  //   const token = localStorage.getItem("token");
-  //   if (token && token !== "") {
-  //     if (validateToken(token)) {
-  //       setToken(token);
-  //     }
-  //   } else {
-  //     console.log("No token present");
-  //   }
-  // }, []);
+  useEffect(() => {
+    if (!token || token === "") {
+      console.log("token not set calling validateToken");
+      validateToken();
+    }
+  }, []);
   return (
     <div>
       <AuthContext.Provider
@@ -152,6 +158,7 @@ export function AuthProvider({ children }) {
           isHost,
           setIsHost,
           client,
+          loading,
         }}
       >
         {children}
