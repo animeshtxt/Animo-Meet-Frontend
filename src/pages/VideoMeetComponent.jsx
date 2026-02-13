@@ -67,12 +67,12 @@ function VideoMeetComponent() {
         <Lobby />
       ) : (
         // <p>lobby</p>
-        <div className="overflow-y-auto">
-          <div className="flex gap-4 w-full justify-between rounded-lg p-2 transition-all ease-in-out duration-300">
+        <div className="overflow-y-auto flex flex-grow relative">
+          <div className="flex gap-4 w-full rounded-lg p-2 transition-all ease-in-out duration-300 overflow-y-auto">
             <MeetingRoom />
             {windowWidth >= 600 ? <ChatPanel view={"desktop"} /> : null}
           </div>
-          <div>{windowWidth < 600 && <ChatPanel view={"mobile"} />}</div>
+          {windowWidth < 600 && <ChatPanel view={"mobile"} />}
         </div>
       )}
 

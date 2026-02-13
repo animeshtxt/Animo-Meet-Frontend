@@ -64,7 +64,8 @@ const VideoTile = ({
 
   return (
     <div
-      className={`video-tile relative   bg-gray-900 rounded-lg overflow-hidden border border-gray-700 aspect-video w-full ${lobby && isLocal ? null : "sm:w-[calc(50%-5px)] lg:w-[calc(33.333%-7px)]"}`}
+      className={`video-tile relative bg-gray-900 rounded-lg overflow-hidden border border-gray-700 aspect-video w-full  ${lobby && isLocal ? "" : "max-w-[400px]  md:max-w-[min(calc((100%-30px)/2),600px)] "}`}
+      style={{ flexShrink: 0 }}
     >
       {/* --- LAYER 1: The Video (ALWAYS RENDERED, JUST HIDDEN) --- */}
       <video
@@ -72,7 +73,7 @@ const VideoTile = ({
         autoPlay
         playsInline
         muted={isLocal || !speakerOn} // Always mute yourself
-        className={`w-full h-full object-cover transition-opacity duration-300 aspect-video ${
+        className={`w-full aspect-video object-cover transition-opacity duration-300 ${
           shouldShowVideo ? "opacity-100" : "opacity-0"
         }`}
         style={{

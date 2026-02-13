@@ -96,6 +96,7 @@ function MeetingRoom() {
 
   // Detect actual overflow and calculate videos per page
   useEffect(() => {
+    return;
     const checkOverflow = () => {
       if (!containerRef.current) return;
 
@@ -181,11 +182,11 @@ function MeetingRoom() {
   };
 
   return (
-    <div className="video-container flex flex-col gap-4 w-full rounded-lg p-2 transition-all ease-in-out duration-300">
+    <div className="video-container flex flex-col flex-grow gap-4 w-full rounded-lg p-2 transition-all ease-in-out duration-300 ">
       {/* Video Grid */}
       <div
         ref={containerRef}
-        className="all-videos flex items-start justify-start gap-[10px] flex-wrap w-full px-2 sm:px-4"
+        className="all-videos flex flex-grow items-center justify-center content-center gap-[10px] flex-wrap content-center w-full p-2"
       >
         {currentVideos.map((video) => (
           <ErrorBoundary key={video.socketId}>

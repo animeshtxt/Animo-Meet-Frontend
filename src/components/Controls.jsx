@@ -141,7 +141,7 @@ function Controls() {
       window.location.href = "/";
       return;
     }
-    routeTo("/home");
+    // routeTo("/home");
     window.location.href = "/home";
     // window.location.href = `/${meetingCode}`;
   };

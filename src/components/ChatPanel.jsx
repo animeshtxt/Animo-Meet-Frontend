@@ -44,11 +44,11 @@ export default function ChatPanel({ view }) {
     return (
       <div
         id="chat-panel-desktop"
-        className={`chat-room sticky top-10 bg-white rounded-xl overflow-hidden transition-all duration-300 ease-in-out ${
-          showMessages ? "w-[400px] opacity-100" : "w-0 opacity-0"
+        className={`chat-room sticky top-[3px] bg-white rounded-xl overflow-hidden transition-all duration-300 ease-in-out ${
+          showMessages ? "w-[350px] opacity-100" : "w-0 opacity-0"
         }`}
         style={{
-          height: "90vh",
+          height: "calc(100vh - 70px)",
           maxHeight: "1000px",
         }}
       >
@@ -125,12 +125,12 @@ export default function ChatPanel({ view }) {
   return (
     <div
       id="chat-panel-mobile"
-      className={`fixed bottom-12  right-0 max-w-[80vw] bg-white rounded-t-xl shadow-2xl transition-transform duration-300 ease-in-out z-50 ${
-        showMessages ? "translate-y-0" : "translate-y-full"
+      className={`fixed bottom-12  right-0 max-w-[80vw] min-w-[300px] max-w-[300px] bg-white rounded-t-xl shadow-2xl transition-transform duration-300 ease-in-out z-50 ${
+        showMessages ? "translate-y-0" : "translate-y-[100vh]"
       }`}
       style={{
-        height: "70vh",
-        maxHeight: "600px",
+        height: "100%",
+        maxHeight: "450px",
       }}
     >
       <div className="h-full flex flex-col">
