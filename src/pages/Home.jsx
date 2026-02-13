@@ -202,7 +202,7 @@ function Home() {
                         setUser({
                           ...user,
                           name: e.target.value,
-                          username: `${e.target.value}_guest`,
+                          username: `${e.target.value}`,
                         })
                       }
                       className="border h-[36px] py-[2px] px-2 focus:outline-[#2c7eea] text-white"

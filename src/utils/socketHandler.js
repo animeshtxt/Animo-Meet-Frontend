@@ -369,7 +369,7 @@ const connectToSocketServer = (
     logger.dev(socketIdRef.current);
     socketRef.current.emit("join-call", {
       roomID,
-      username: user.username,
+      username: isGuest ? `${user.username}_guest` : user.username,
       name: isGuest ? `${user.name} (Guest)` : user.name,
       audioEnabled: audioEnabled,
       audioAvailable: audioAvailable,

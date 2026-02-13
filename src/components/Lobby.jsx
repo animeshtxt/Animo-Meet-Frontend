@@ -227,8 +227,8 @@ function Lobby() {
                     // setGuestName(e.target.value);
                     setUser({
                       ...user,
-                      name: `${e.target.value} (guest)`,
-                      username: `${e.target.value}_guest`,
+                      name: `${e.target.value}`,
+                      username: `${e.target.value}`,
                     });
                   }}
                   sx={{
