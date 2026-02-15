@@ -2,6 +2,8 @@
 
 A modern, real-time video conferencing application built with React and WebRTC technology. Animo Meet provides seamless video calling experiences with integrated chat functionality, user authentication, and responsive design.
 
+**Note**: You can visit the Backend repository [here](https://github.com/animeshtxt/Animo-Meet-Backend).
+
 ## 🚀 Features
 
 ### Core Functionality
