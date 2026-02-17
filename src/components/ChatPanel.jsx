@@ -4,12 +4,19 @@ import SendIcon from "@mui/icons-material/Send";
 import CloseIcon from "@mui/icons-material/Close";
 import { MediaContext } from "../contexts/MediaContext";
 import { AuthContext } from "../contexts/AuthContext";
+import { logger } from "../utils/logger";
 
 export default function ChatPanel({ view }) {
   const scrollRef = useRef();
   const [message, setMessage] = useState("");
-  const { showMessages, setShowMessages, socketRef, messages, setNewMessages } =
-    useContext(MediaContext);
+  const {
+    showMessages,
+    setShowMessages,
+    socketRef,
+    socketIdRef,
+    messages,
+    setNewMessages,
+  } = useContext(MediaContext);
   const { user } = useContext(AuthContext);
 
   // Scroll to bottom on new message
@@ -35,8 +42,16 @@ export default function ChatPanel({ view }) {
   };
   const sendMessage = (message) => {
     console.log("Send message called");
-    socketRef.current.emit("chat-message", user.name, message, Date.now());
+    socketRef.current.emit("chat-message", {
+      sender: user.name,
+      data: message,
+      time: Date.now(),
+      socketIdSender: socketIdRef.current,
+    });
     setMessage("");
+    logger.dev(
+      `Message sent: \nMessagee: ${message} \n Time: ${Date.now()} \n SocketIdSender: ${socketIdRef.current}`,
+    );
   };
 
   // Desktop mode: expand/collapse with width transition
@@ -65,16 +80,22 @@ export default function ChatPanel({ view }) {
                 messages.map((message, index) => {
                   return message.time &&
                     !isNaN(new Date(message.time).getTime()) ? (
-                    <div key={index} className="rounded-sm bg-gray-100 p-1 ">
+                    <div
+                      key={index}
+                      className={`rounded-sm p-1 ${message.socketIdSender === socketIdRef.current ? "bg-blue-100 ml-4" : "bg-gray-100 mr-4"}`}
+                    >
                       <p className="flex justify-between gap-4 items-center">
-                        <span className="font-medium text-[#1976d2]">
-                          {message.sender}
+                        <span className="font-medium text-xs text-[#1976d2]">
+                          {message.sender}{" "}
+                          {message.socketIdSender === socketIdRef.current
+                            ? "(You)"
+                            : ""}
                         </span>
                         <span className="text-xs text-gray-600">
                           {new Date(message.time).toLocaleTimeString()}
                         </span>
                       </p>
-                      <p className="text-black font-normal whitespace-pre-line mt-1 break-words">
+                      <p className="text-black font-normal text-sm whitespace-pre-line mt-1 break-words">
                         {message.data}
                       </p>
                     </div>

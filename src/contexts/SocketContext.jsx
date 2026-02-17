@@ -74,17 +74,39 @@ export function SocketContextProvider({ children }) {
     }
   };
 
-  const addMessage = (sender, data, time, socketIdSender) => {
-    console.log("Received new message : ", sender, data, time, socketIdSender);
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      { sender: sender, data: data, time: time },
-    ]);
+  const addMessage = ({ sender, data, time, socketIdSender }) => {
+    console.log("🔔 addMessage CALLED!");
+    console.log("📨 Received message object:", {
+      sender,
+      data,
+      time,
+      socketIdSender,
+    });
+    console.log("🆔 Current socket ID:", socketIdRef.current);
+    console.log("🤔 Is own message?", socketIdSender === socketIdRef.current);
+
+    setMessages((prevMessages) => {
+      const newMessages = [
+        ...prevMessages,
+        {
+          sender: sender,
+          data: data,
+          time: time,
+          socketIdSender: socketIdSender,
+        },
+      ];
+      console.log("✅ Updated messages array:", newMessages);
+      return newMessages;
+    });
+
     if (
       socketIdSender !== socketIdRef.current &&
       time &&
       !isNaN(new Date(time).getTime())
     ) {
+      console.log(
+        "🔔 Incrementing new messages counter (currently commented out)",
+      );
       // setNewMessages((prevMessages) => prevMessages + 1);
     }
   };
@@ -106,7 +128,9 @@ export function SocketContextProvider({ children }) {
         user.name,
       );
       const socketId = socketRef.current.id;
+      console.log("🔌 Registering 'chat-message' listener...");
       socketRef.current.on("chat-message", addMessage);
+      console.log("✅ 'chat-message' listener registered!");
       socketRef.current.on("user-left", (id, leftUsername) => {
         console.log(leftUsername, "left");
         setSnackbarMsg({

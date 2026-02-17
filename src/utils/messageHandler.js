@@ -1,9 +1,26 @@
+import { logger } from "./logger";
 function handleReceiveMessage(socketIdRef, setMessages, setNewMessages) {
-  return function addMessage(sender, data, time, socketIdSender) {
+  // Return a function that accepts the message object from backend
+  return function addMessage(messageObj) {
+    const { sender, data, time, socketIdSender } = messageObj;
+
+    logger.dev("📨 Chat message received:", {
+      sender,
+      data,
+      time,
+      socketIdSender,
+    });
+
     setMessages((prevMessages) => [
       ...prevMessages,
-      { sender: sender, data: data, time: time },
+      {
+        sender: sender,
+        data: data,
+        time: time,
+        socketIdSender: socketIdSender,
+      },
     ]);
+
     if (
       socketIdSender !== socketIdRef.current &&
       time &&
