@@ -35,6 +35,9 @@ import { useNavigate, useParams } from "react-router-dom";
 import { SocketContext } from "../contexts/SocketContext";
 import { killAllCameraAccess } from "../utils/mediaHandler";
 import { logger } from "../utils/logger";
+import useAuthStore from "../stores/authStore";
+import useMeetingStore from "../stores/meetingStore";
+import useMediaStore from "../stores/mediaStore";
 
 // 1. Global Registry for ALL streams
 window.activeStreams = [];
@@ -65,8 +68,13 @@ function Controls() {
   const [checkedTwo, setCheckedTwo] = useState(true);
   const [checkedThree, setCheckedThree] = useState(true);
   const [copied, setCopied] = useState(false);
-  const hasInitializedMedia = useRef(false);
+  const hasInitializedVideo = useRef(false);
   const { meetingCode } = useParams();
+  const routeTo = useNavigate();
+
+  const { isGuest, user } = useAuthStore();
+  const { isHost, askForAdmit, setAskForAdmit, meetControls } =
+    useMeetingStore();
 
   const {
     videoEnabled,
@@ -76,74 +84,109 @@ function Controls() {
     audioEnabled,
     setAudioEnabled,
     audioAvailable,
+    setAudioAvailable,
     speakerOn,
     setSpeakerOn,
     showMessages,
     setShowMessages,
-    askForAdmit,
     handleScreen,
-    newMessages,
     socketRef,
+    socketIdRef,
     localVideoRef,
     connections,
     usernames,
     admitRequest,
-  } = useContext(MediaContext);
-  const { isGuest, user, isHost } = useContext(AuthContext);
-  const routeTo = useNavigate();
+    setConnections,
+    setUsernames,
+    setAdmitRequest,
+    messages,
+    addMessage,
+    newMessageCount,
+    setNewMessageCount,
+  } = useMediaStore();
 
   const handleEndCall = () => {
     try {
-      // Notify server and peers
+      // 1. Disconnect socket
       if (socketRef.current) {
         socketRef.current.emit("leave-call");
         socketRef.current.disconnect();
+        socketRef.current = null;
       }
-      // Stop all peer connections
+      socketIdRef.current = null;
+
+      // 2. Close all peer connections & stop their tracks
       if (connections && Object.keys(connections).length > 0) {
         logger.dev("Closing peer connections");
         Object.values(connections).forEach((pc) => {
-          // Stop all tracks being sent through this peer connection
           pc.getSenders().forEach((sender) => {
-            if (sender.track) {
-              logger.dev(
-                `Stopping ${sender.track.kind} track from peer connection`,
-              );
-              sender.track.stop();
-            }
+            if (sender.track) sender.track.stop();
+          });
+          pc.getReceivers().forEach((receiver) => {
+            if (receiver.track) receiver.track.stop();
           });
           pc.close();
         });
       }
-      // Stop tracks from localVideoRef (the video element stream)
+
+      // 3. Stop localVideoRef stream
       if (localVideoRef.current?.srcObject) {
-        let tracks = localVideoRef.current.srcObject.getTracks();
-        tracks.forEach((track) => {
+        localVideoRef.current.srcObject.getTracks().forEach((track) => {
           track.stop();
-          logger.dev(`Stopped ${track.kind} track from localVideoRef`);
         });
         localVideoRef.current.srcObject = null;
       }
-      // Also stop window.localStream if it exists
+
+      // 4. Stop window.localStream
       if (window.localStream) {
-        let tracks = window.localStream.getTracks();
-        tracks.forEach((track) => {
-          track.stop();
-          logger.dev(`Stopped window.localStream ${track.kind} track`);
-        });
+        window.localStream.getTracks().forEach((track) => track.stop());
         window.localStream = null;
       }
+
+      // 5. Kill ALL trapped streams from global registry
+      if (window.activeStreams && window.activeStreams.length > 0) {
+        window.activeStreams.forEach((stream) => {
+          stream.getTracks().forEach((track) => {
+            if (track.readyState === "live") {
+              track.stop();
+              logger.dev(`Stopped trapped ${track.kind} track: ${track.id}`);
+            }
+          });
+        });
+        window.activeStreams = [];
+      }
+
+      // 6. Kill any remaining DOM video elements
+      killAllCameraAccess();
+
+      // 7. Reset media store
+      const mediaReset = useMediaStore.getState();
+      mediaReset.setVideoEnabled(false);
+      mediaReset.setVideoAvailable(false);
+      mediaReset.setAudioEnabled(false);
+      mediaReset.setAudioAvailable(false);
+      mediaReset.setSpeakerOn(true);
+      mediaReset.setShowMessages(false);
+      mediaReset.setNewMessageCount(0);
+      mediaReset.setConnections({});
+      mediaReset.setUsernames({});
+      mediaReset.setAdmitRequest(0);
+      mediaReset.clearMessages();
+      mediaReset.clearVideos();
+      mediaReset.setOriginalVideoTrack(null);
+      mediaReset.setOriginalAudioTrack(null);
+
+      // 8. Reset meeting store
+      setAskForAdmit(true);
+      // useMeetingStore.getState().setMeetingCodeChecked(false);
+      useMeetingStore.getState().setLeftMeet(true);
+      routeTo(`/${meetingCode}`);
     } catch (e) {
-      logger.dev("Error ending call:", e);
+      logger.error("Error ending call:", e);
     }
-    if (isGuest) {
-      // routeTo("/");
-      window.location.href = "/";
-      return;
-    }
-    // routeTo("/home");
-    window.location.href = "/home";
-    // window.location.href = `/${meetingCode}`;
+
+    // 9. Navigate
+    routeTo(`/${meetingCode}`);
   };
 
   const handleChange = (event, newValue) => {
@@ -162,116 +205,103 @@ function Controls() {
     }
   };
 
+  // Video toggle effect — ONLY watches videoEnabled
   useEffect(() => {
     if (isFirstRender) {
       setIsFirstRender(false);
       return;
     }
 
-    // Skip toggleVideo entirely during initial media setup
-    // The stream is already created by getPermission, don't modify it
-    if (!hasInitializedMedia.current) {
-      logger.dev(
-        "Initial media setup - marking as initialized, NOT calling toggleVideo",
-      );
-      hasInitializedMedia.current = true;
+    // No stream = not in a call yet or call ended
+    if (!window.localStream) return;
 
-      // Still notify socket about initial state
+    logger.dev("User toggled video:", videoEnabled);
+
+    // Actual user video toggle
+    // Wrap async logic in IIFE (useEffect can't be async)
+    (async () => {
+      await toggleVideo();
+
+      // Emit with fresh state (toggleVideo may have changed videoAvailable)
       if (socketRef.current) {
-        const roomId = meetingCode;
+        const s = useMediaStore.getState();
         socketRef.current.emit("toggle-media", {
-          roomId,
-          kind: "video",
-          status: videoEnabled,
+          roomId: meetingCode,
+          peerVideoEnabled: s.videoEnabled,
+          peerVideoAvailable: s.videoAvailable,
+          peerAudioEnabled: s.audioEnabled,
+          peerAudioAvailable: s.audioAvailable,
         });
+        logger.dev(
+          `Emitting toggle-media with videoEnabled ${s.videoEnabled} and videoAvailable ${s.videoAvailable}, audioEnabled ${s.audioEnabled} and audioAvailable ${s.audioAvailable}`,
+        );
       }
-      return;
-    }
-
-    // Only reach here for actual user toggle actions
-    logger.dev("User toggled video - calling toggleVideo");
-    toggleVideo();
-
-    if (!socketRef.current) return;
-    const roomId = meetingCode;
-    socketRef.current.emit("toggle-media", {
-      roomId,
-      peerVideoEnabled: videoEnabled,
-      peerVideoAvailable: videoAvailable,
-      peerAudioEnabled: audioEnabled,
-      peerAudioAvailable: audioAvailable,
-    });
-  }, [videoEnabled, audioEnabled]);
+    })();
+  }, [videoEnabled]);
 
   const toggleVideo = async () => {
-    logger.dev("video toggle called");
-    // A. IF TURNING OFF
+    logger.dev("toggleVideo called, videoEnabled:", videoEnabled);
+    const currentConnections = useMediaStore.getState().connections;
+
+    // A. TURNING OFF
     if (!videoEnabled) {
       logger.dev("turning off video");
 
-      // 1. Loop through the REGISTRY (Kill orphans, ghosts, and current streams)
+      // 1. Kill all trapped streams in registry
       if (window.activeStreams) {
         window.activeStreams.forEach((stream) => {
           stream.getVideoTracks().forEach((track) => {
-            if (track.kind === "video" && track.readyState === "live") {
+            if (track.readyState === "live") {
               track.stop();
               logger.dev(`💀 Killed track: ${track.id}`);
             }
           });
         });
-        // Clear the registry
         window.activeStreams = [];
       }
 
-      // 2. Clear Global Variable (Just in case)
+      // 2. Stop & remove video tracks from localStream
       window.localStream.getVideoTracks().forEach((track) => {
         track.stop();
         window.localStream.removeTrack(track);
         logger.dev("removed localStream video Track");
       });
+
+      // Clean up duplicate audio tracks (keep only one)
       const audioTracks = window.localStream.getAudioTracks();
       const audioTracksCount = audioTracks.length;
       audioTracks.forEach((track, i) => {
         if (i < audioTracksCount - 1) {
           track.stop();
           window.localStream.removeTrack(track);
-          logger.dev("removed localStream audio track");
+          logger.dev("removed duplicate localStream audio track");
         }
       });
-      // 3. DETACH FROM PEERS (Crucial for full release)
-      // If we don't do this, the PeerConnection might hold a "dead" reference
 
-      Object.values(connections).forEach((pc) => {
+      // 3. Detach from peer connections
+      Object.values(currentConnections).forEach((pc) => {
         const sender = pc.getSenders().find((s) => s.track?.kind === "video");
         if (sender) {
-          logger.dev("Replacing track in peer connection with null");
-          sender.replaceTrack(null); // Tell connection "No more video"
+          logger.dev("Replacing video track in peer connection with null");
+          sender.replaceTrack(null);
         }
       });
     }
 
-    // B. IF TURNING ON
+    // B. TURNING ON
     else {
       logger.dev("turning ON video");
-
       try {
-        logger.dev("re-requesting hardware access");
-        // 1. Re-request Hardware access
         const newStream = await navigator.mediaDevices.getUserMedia({
           video: true,
         });
         const newTrack = newStream.getVideoTracks()[0];
 
-        // 2. Add back to our "Source of Truth" stream
-        // window.localStream = new MediaStream();
         window.localStream.addTrack(newTrack);
-        setVideoEnabled(true);
         setVideoAvailable(true);
-
-        // 3. Re-attach to Peer Connections (Crucial step for SFU/P2P)
-        Object.values(connections).forEach((pc) => {
-          // Find the 'Sender' that is currently handling video
-          // Note: We check s.track.kind OR if the track is null (which happens if you previously replaced it with null)
+        setVideoEnabled(true);
+        // Re-attach to peer connections
+        Object.values(currentConnections).forEach((pc) => {
           const sender = pc
             .getSenders()
             .find(
@@ -279,26 +309,20 @@ function Controls() {
                 s.track?.kind === "video" ||
                 (s.track === null && s.dtmf === null),
             );
-          // Note: s.dtmf check is a hacky way to distinguish video senders from audio senders if track is null,
-          // but usually relying on your stored state or just checking s.track.kind === 'video' before stopping is safer.
 
           if (sender) {
-            // A. Replace the track directly (Hot Swap)
             sender
               .replaceTrack(newTrack)
               .then(() => logger.dev("Track replaced successfully for peer"))
               .catch((err) => logger.error("Failed to replace track:", err));
           } else {
-            // B. Edge Case: If the connection started as Audio-Only, a Video Sender might not exist.
-            // In that specific case, replaceTrack won't work; you must call pc.addTrack() and create a new Offer.
-            logger.warn(
-              "No video sender found. You may need to renegotiate (createOffer) instead.",
-            );
+            logger.warn("No video sender found. May need to renegotiate.");
           }
         });
       } catch (e) {
         logger.error("Failed to restart video", e);
-        setVideoAvailable(false); // Assume device is gone/denied
+        setVideoAvailable(false);
+        setVideoEnabled(false);
       }
     }
   };
@@ -306,9 +330,19 @@ function Controls() {
   const toggleAudio = () => {
     const audioTrack = window.localStream.getAudioTracks()[0];
     if (audioTrack) {
-      // Soft Toggle: Hardware stays on, but we stop sending bits
       audioTrack.enabled = !audioTrack.enabled;
       setAudioEnabled(audioTrack.enabled);
+
+      // Notify peers about audio change
+      if (socketRef.current) {
+        socketRef.current.emit("toggle-media", {
+          roomId: meetingCode,
+          peerVideoEnabled: videoEnabled,
+          peerVideoAvailable: videoAvailable,
+          peerAudioEnabled: audioTrack.enabled,
+          peerAudioAvailable: audioAvailable,
+        });
+      }
     }
   };
 
@@ -320,7 +354,7 @@ function Controls() {
       <div>
         <IconButton
           onClick={() => {
-            setVideoEnabled((prev) => !prev);
+            setVideoEnabled(!videoEnabled);
           }}
         >
           <Badge badgeContent={videoAvailable ? 0 : "i"} color="error">
@@ -366,7 +400,7 @@ function Controls() {
         </IconButton>
       </div>
       <div>
-        <IconButton onClick={() => setSpeakerOn((prev) => !prev)}>
+        <IconButton onClick={() => setSpeakerOn(!speakerOn)}>
           {speakerOn ? (
             <VolumeUpOutlinedIcon
               sx={{ fontSize: "clamp(24px, 2vw, 40px)", color: "white" }}
@@ -403,7 +437,7 @@ function Controls() {
                 setShowMessages(!showMessages);
               }}
             >
-              <Badge badgeContent={newMessages} color="primary">
+              <Badge badgeContent={newMessageCount} color="primary">
                 <ChatIcon
                   sx={{ fontSize: "clamp(24px, 2vw, 40px)", color: "white" }}
                 />

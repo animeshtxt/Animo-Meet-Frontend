@@ -4,6 +4,7 @@ import status from "http-status";
 
 import { MediaContext } from "../contexts/MediaContext";
 import { AuthContext } from "../contexts/AuthContext";
+import useAuthStore from "../stores/authStore";
 
 import { TextField, Button, IconButton } from "@mui/material";
 import Navbar from "../components/Navbar";
@@ -19,23 +20,22 @@ function Guest() {
 
   const { setSnackbarOpen, setSnackbarMsg, isGuest, user, setUser, client } =
     useContext(AuthContext);
+  const { addSnackbar } = useAuthStore();
 
   const routeTo = useNavigate();
   async function connect() {
     if (guestName === "") {
-      setSnackbarMsg({
+      addSnackbar({
         severity: "warning",
         message: "Enter name",
       });
-      setSnackbarOpen(true);
       return;
     }
     if (meetingCode === "") {
-      setSnackbarMsg({
+      addSnackbar({
         severity: "warning",
         message: "Enter valid meeting code",
       });
-      setSnackbarOpen(true);
       return;
     }
     setCheckingCode(true);
@@ -48,9 +48,8 @@ function Guest() {
           name: `${guestName} (Guest)`,
           type: "guest",
         });
-        // Redirect to lobby logic is in useEffect
       } else {
-        setSnackbarMsg({
+        addSnackbar({
           severity: "warning",
           message: response.data.message,
         });
@@ -58,18 +57,16 @@ function Guest() {
       }
     } catch (error) {
       if (error.response?.status === 404) {
-        setSnackbarMsg({
+        addSnackbar({
           severity: "error",
           message: "Meeting not found. Please check the code and try again.",
         });
-        setSnackbarOpen(true);
         console.error(error.response);
       } else {
-        setSnackbarMsg({
+        addSnackbar({
           severity: "error",
           message: "Something went wrong. Try again later.",
         });
-        setSnackbarOpen(true);
         console.log(error.response);
       }
       setJoiningMeet(false);

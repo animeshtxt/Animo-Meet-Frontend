@@ -1,7 +1,8 @@
 import { logger } from "./logger";
-function handleReceiveMessage(socketIdRef, setMessages, setNewMessages) {
+import useMediaStore from "../stores/mediaStore";
+function handleReceiveMessage(socketIdRef, addMessage, setNewMessageCount) {
   // Return a function that accepts the message object from backend
-  return function addMessage(messageObj) {
+  return function addMessageHandler(messageObj) {
     const { sender, data, time, socketIdSender } = messageObj;
 
     logger.dev("📨 Chat message received:", {
@@ -11,22 +12,20 @@ function handleReceiveMessage(socketIdRef, setMessages, setNewMessages) {
       socketIdSender,
     });
 
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      {
-        sender: sender,
-        data: data,
-        time: time,
-        socketIdSender: socketIdSender,
-      },
-    ]);
+    addMessage({
+      sender: sender,
+      data: data,
+      time: time,
+      socketIdSender: socketIdSender,
+    });
 
     if (
       socketIdSender !== socketIdRef.current &&
       time &&
       !isNaN(new Date(time).getTime())
     ) {
-      setNewMessages((prevMessages) => prevMessages + 1);
+      const current = useMediaStore.getState().newMessageCount;
+      setNewMessageCount(current + 1);
     }
   };
 }

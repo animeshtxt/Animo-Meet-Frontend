@@ -7,6 +7,10 @@ import { IconButton, Typography } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 
+import useAuthStore from "../stores/authStore";
+import useMeetingStore from "../stores/meetingStore";
+import useMediaStore from "../stores/mediaStore";
+
 function VideoPlayer({ stream, ...props }) {
   const ref = useRef();
   useEffect(() => {
@@ -52,7 +56,10 @@ const VideoTileOld = React.memo(
 );
 
 function MeetingRoom() {
+  const { user } = useAuthStore();
+  const { askForAdmit } = useMeetingStore();
   const {
+    newMessageCount,
     videos,
     usernames,
     speakerOn,
@@ -62,8 +69,7 @@ function MeetingRoom() {
     videoAvailable,
     audioAvailable,
     socketIdRef,
-  } = useContext(MediaContext);
-  const { user } = useContext(AuthContext);
+  } = useMediaStore();
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(0);

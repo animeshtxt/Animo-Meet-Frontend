@@ -6,44 +6,50 @@ import React, {
   useCallback,
 } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { TextField, Button } from "@mui/material";
 
 import status from "http-status";
 
 import { AuthContext } from "../contexts/AuthContext";
 import { MediaContext } from "../contexts/MediaContext";
+
+import useAuthStore from "../stores/authStore.js";
+import useMeetingStore from "../stores/meetingStore.js";
+
 import Navbar from "../components/Navbar";
 import ChatPanel from "../components/ChatPanel";
 import Controls from "../components/Controls";
 import Lobby from "../components/Lobby";
 import MeetingRoom from "../components/MeetingRoom";
 import useWindowWidth from "../utils/WindowWidth";
-
 function VideoMeetComponent() {
   const {
-    videoAvailable,
-    setVideoAvailable,
-    audioAvailable,
-    setAudioAvailable,
-    video,
-    setVideo,
-    audio,
-    setAudio,
-    speakerOn,
-    setSpeakerOn,
-    copied,
-    askForUsername,
-    setAskForUsername,
-    handleScreen,
-    localVideoRef,
+    meetingCode,
+    isHost,
+    setMeetingCode,
+    checkMeetingCode,
+    meetingCodeChecked,
+    setMeetingCodeChecked,
     askForAdmit,
     setAskForAdmit,
-  } = useContext(MediaContext);
+    meetExists,
+    leftMeet,
+    // checkHost,
+  } = useMeetingStore();
+  const { meetingCode: urlMeetingCode } = useParams();
+  const { user, token, isGuest } = useAuthStore();
 
   let canvasRef = useRef(null);
 
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
+  const routeTo = useNavigate();
+
   useEffect(() => {
+    if (!meetingCodeChecked) {
+      setMeetingCode(urlMeetingCode);
+      checkMeetingCode(urlMeetingCode);
+    }
     // Handler function to update the state
     function handleResize() {
       setWindowWidth(window.innerWidth);
@@ -61,7 +67,30 @@ function VideoMeetComponent() {
     };
   }, []);
 
-  return (
+  return meetingCodeChecked !== true ? (
+    <div className="flex justify-center items-center w-screen h-screen bg-[url('/images/call-bg.avif')] bg-cover text-white">
+      Checking meeting...
+    </div>
+  ) : meetExists !== true ? (
+    <div className="flex flex-col gap-8 justify-center items-center w-screen h-screen bg-[url('/images/call-bg.avif')] bg-cover text-white text-xl ">
+      <p className="text-center d-block">
+        Meeting with code{" "}
+        <span className="font-bold text-green-500 mx-2">{meetingCode} </span>{" "}
+        not found, please check the code and try again
+      </p>
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={() => {
+          setMeetingCodeChecked(false);
+          setMeetingCode("");
+          routeTo("/home");
+        }}
+      >
+        Back to Home
+      </Button>
+    </div>
+  ) : (
     <div className="video-meet-component w-screen h-screen max-h-[100vh] overflow-y-hidden  relative bg-[url('/images/call-bg.avif')]    bg-cover flex flex-col justify-between">
       {askForAdmit === true ? (
         <Lobby />
@@ -76,7 +105,7 @@ function VideoMeetComponent() {
         </div>
       )}
 
-      <Controls />
+      {!useMeetingStore.getState().leftMeet && <Controls />}
     </div>
   );
 }

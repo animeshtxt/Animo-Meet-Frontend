@@ -97,7 +97,11 @@ function createSignalHandler({
               socketId: fromId,
               stream: event.streams[0],
               name: namesMap.current[fromId] || "Unknown",
-              ...peerStatesRef.current[fromId],
+              videoEnabled: true,
+              videoAvailable: true,
+              audioEnabled: true,
+              audioAvailable: true,
+              ...(peerStatesRef.current[fromId] || {}),
             },
           ];
         });
@@ -287,10 +291,11 @@ function createSignalHandler({
                     socketId: fromId,
                     stream: remoteStream,
                     name: namesMap.current[fromId] || "Unknown",
-                    videoEnabled: true,
-                    videoAvailable: true,
-                    audioEnabled: true,
-                    audioAvailable: true,
+                    // videoEnabled: true,
+                    // videoAvailable: true,
+                    // audioEnabled: true,
+                    // audioAvailable: true,
+                    ...(peerStatesRef.current[fromId] || {}),
                   },
                 ];
               });
@@ -327,10 +332,9 @@ const connectToSocketServer = (
   setVideos,
   setUsernames,
   setAskForAdmit,
-  setMessages,
-  setNewMessages,
-  setSnackbarMsg,
-  setSnackbarOpen,
+  addMessage,
+  setNewMessageCount,
+  addSnackbar,
   roomID,
   audioEnabled,
   audioAvailable,
@@ -381,25 +385,23 @@ const connectToSocketServer = (
       setAskForAdmit(false);
     });
     socketRef.current.on("denied", () => {
-      setSnackbarMsg({
+      addSnackbar({
         severity: "error",
         message: "Admin denied permission",
       });
-      setSnackbarOpen(true);
       logger.info("Admin denied entry");
     });
 
     socketRef.current.on(
       "chat-message",
-      handleReceiveMessage(socketIdRef, setMessages, setNewMessages),
+      handleReceiveMessage(socketIdRef, addMessage, setNewMessageCount),
     );
     socketRef.current.on("user-left", (id, leftUsername) => {
       logger.dev(leftUsername, "left");
-      setSnackbarMsg({
+      addSnackbar({
         severity: "error",
         message: `${leftUsername} left`,
       });
-      setSnackbarOpen(true);
       setUsernames((prevUsernames) => {
         const updated = { ...prevUsernames };
         delete updated[id];
@@ -437,11 +439,10 @@ const connectToSocketServer = (
             name: name || namesMapRef.current[id] || "Unknown", // ✅ Add name
           };
           if (id !== socketIdRef.current) {
-            setSnackbarMsg({
+            addSnackbar({
               severity: "success",
               message: `${name ? name : "someone"} joined`,
             });
-            setSnackbarOpen(true);
             logger.dev(`${name ? name : "someone"} joined`);
           }
 
@@ -558,8 +559,12 @@ const connectToSocketServer = (
                   {
                     socketId: socketListId,
                     stream: event.streams[0],
-                    // ✅ Use socketListId (the peer's ID), not id (my ID)
-                    ...peerStatesRef.current[socketListId],
+                    name: namesMapRef.current[socketListId] || "Unknown",
+                    // videoEnabled: true,
+                    // videoAvailable: true,
+                    // audioEnabled: true,
+                    // audioAvailable: true,
+                    ...(peerStatesRef.current[socketListId] || {}),
                   },
                 ];
               });
@@ -695,7 +700,7 @@ const connectToSocketServer = (
       }
 
       logger.dev(
-        `${userId} toggled media to video:${peerVideoEnabled} audio:${peerAudioEnabled}`,
+        `${userId} toggled media to video:${peerVideoEnabled} audio:${peerAudioEnabled} with peerVideoAvailable: ${peerVideoAvailable} and peerAudioAvailable: ${peerAudioAvailable}`,
       );
       setVideos((prevVideos) =>
         prevVideos.map((video) =>
@@ -703,7 +708,9 @@ const connectToSocketServer = (
             ? {
                 ...video,
                 audioEnabled: peerAudioEnabled,
+                audioAvailable: peerAudioAvailable,
                 videoEnabled: peerVideoEnabled,
+                videoAvailable: peerVideoAvailable,
               }
             : video,
         ),

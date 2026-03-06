@@ -1,6 +1,7 @@
 import { useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
+import useAuthStore from "../stores/authStore";
 import status from "http-status";
 import { useEffect } from "react";
 import Navbar from "../components/Navbar";
@@ -9,17 +10,10 @@ export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
+  const [loggingIn, setLoggingIn] = useState(false);
   const routeTo = useNavigate();
-  const {
-    handleLogin,
-    setSnackbarOpen,
-    setSnackbarMsg,
-    token,
-    setToken,
-    user,
-    setUser,
-    validateToken,
-  } = useContext(AuthContext);
+  const { token, user, handleLogin, validateToken, addSnackbar } =
+    useAuthStore();
 
   const [errorMessge, setErrorMessage] = useState({});
 
@@ -33,6 +27,22 @@ export default function Login() {
 
   const loginUser = async (e) => {
     e.preventDefault();
+
+    if (!username || username.trim() === "") {
+      setErrorMessage({
+        target: "username",
+        message: "Username is required",
+      });
+      return;
+    }
+    if (!password || password.trim() === "") {
+      setErrorMessage({
+        target: "password",
+        message: "Password is required",
+      });
+      return;
+    }
+    setLoggingIn(true);
     if (username == "") {
       setErrorMessage({
         target: "username",
@@ -46,32 +56,26 @@ export default function Login() {
       });
     }
     try {
-      const { serverMsg, serverStatus } = await handleLogin(username, password);
-      console.log("Message : " + serverMsg + serverStatus);
-      setSnackbarMsg({
-        severity: severityStat[serverStatus] || 500,
-        message: serverMsg,
-      });
-      setSnackbarOpen(true);
-      if (serverStatus === status.OK) {
-        const tkn = serverMsg.token;
-        setToken(tkn);
-        // validateToken(tkn);
-        window.location.href = "/home";
+      const loginSuccess = await handleLogin(username, password);
+      if (loginSuccess) {
+        routeTo("/home");
+      } else {
+        setLoggingIn(false);
       }
     } catch (e) {
+      setLoggingIn(false);
       console.log(e);
-      setSnackbarMsg(e.message);
-      setSnackbarOpen(true);
     }
   };
 
   useEffect(() => {
     const checkAuth = async () => {
-      const isValid = await validateToken();
-      if (isValid) {
-        console.log("User already prsent");
+      if (token) {
         routeTo("/home");
+        addSnackbar({
+          severity: "info",
+          message: "You are already logged in",
+        });
       }
     };
     checkAuth();
@@ -81,8 +85,6 @@ export default function Login() {
       <Navbar />
       <main className="flex-grow login-container flex flex-col justify-center items-center ">
         <div className="form-container">
-          <h1 className="text-3xl font-bold text-center w-full">Animo Meet</h1>
-
           <h2 className="text-xl font-bold text-center w-full">Sign In</h2>
           <form action="">
             <div className="input-container">
@@ -151,8 +153,13 @@ export default function Login() {
                 <p style={{ color: "red" }}>{errorMessge.message}</p>
               ) : null}
             </div>
-            <button className="auth-btn" onClick={loginUser}>
-              Signin
+            <button
+              variant="contained"
+              className="auth-btn"
+              onClick={loginUser}
+              disabled={loggingIn}
+            >
+              {loggingIn ? "Signin in..." : "Signin"}
             </button>
           </form>
           <p style={{ width: "100%", textAlign: "center", margin: "10px" }}>

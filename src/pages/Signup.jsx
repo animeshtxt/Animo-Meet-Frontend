@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useContext, useState, useEffect } from "react";
 import { AuthContext } from "../contexts/AuthContext";
+import useAuthStore from "../stores/authStore";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
 import status from "http-status";
@@ -12,14 +13,12 @@ export default function Signup() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const { handleRegister, setSnackbarOpen, setSnackbarMsg } =
-    useContext(AuthContext);
-  // const [open, setOpen] = useState(false);
-  // const [msg, setMsg] = useState({});
+  const [signingUp, setSiginingUp] = useState(false);
+  const { addSnackbar, handleRegister } = useAuthStore();
   const [inputError, setInputError] = useState({});
   const [isFirstRender, setIsFirstRender] = useState(true);
   const [showPw, setShowPw] = useState(false);
-  const router = useNavigate();
+  const routeTo = useNavigate();
 
   const severityStat = {
     [status.CONFLICT]: "error", // 409
@@ -27,11 +26,6 @@ export default function Signup() {
     [status.BAD_REQUEST]: "warning", // 400
     [status.INTERNAL_SERVER_ERROR]: "error", // 500
   };
-
-  // const handleClose = (event, reason) => {
-  //   if (reason === "clickaway") return;
-  //   setSnackbarOpen(false);
-  // };
 
   const checkInputError = () => {
     if (name === "" || !name) {
@@ -73,18 +67,16 @@ export default function Signup() {
     if (!checkInputError()) {
       return;
     }
+    setSiginingUp(true);
     const { serverMsg, serverStatus } = await handleRegister(
       name,
       username,
       password,
     );
-    setSnackbarMsg({
-      severity: severityStat[serverStatus] || "failure",
-      message: serverMsg || "Internal server error",
-    });
-    setSnackbarOpen(true);
     if (serverStatus === status.CREATED) {
-      router("/login");
+      routeTo("/login");
+    } else {
+      setSiginingUp(false);
     }
   };
   useEffect(() => {
@@ -167,8 +159,6 @@ export default function Signup() {
       <Navbar />
       <main className="flex-grow login-container w-full h-full flex flex-col justify-center items-center">
         <div className="form-container">
-          <h1 class="text-3xl font-bold text-center w-full">Animo Meet</h1>
-
           <h2 className="text-xl font-bold text-center w-full">SignUp</h2>
           <form action="">
             <div className="input-container">
@@ -269,8 +259,12 @@ export default function Signup() {
               ) : null}
             </div>
 
-            <button className="auth-btn" onClick={registerUser}>
-              Signup
+            <button
+              className="auth-btn"
+              onClick={registerUser}
+              disabled={signingUp}
+            >
+              {signingUp ? "Signing Up..." : "Signup"}
             </button>
           </form>
           <p style={{ width: "100%", textAlign: "center", margin: "10px" }}>

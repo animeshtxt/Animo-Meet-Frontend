@@ -6,6 +6,10 @@ import { MediaContext } from "../contexts/MediaContext";
 import { AuthContext } from "../contexts/AuthContext";
 import { logger } from "../utils/logger";
 
+import useAuthStore from "../stores/authStore";
+import useMediaStore from "../stores/mediaStore";
+import useMeetingStore from "../stores/meetingStore";
+
 export default function ChatPanel({ view }) {
   const scrollRef = useRef();
   const [message, setMessage] = useState("");
@@ -15,9 +19,9 @@ export default function ChatPanel({ view }) {
     socketRef,
     socketIdRef,
     messages,
-    setNewMessages,
-  } = useContext(MediaContext);
-  const { user } = useContext(AuthContext);
+    setNewMessageCount,
+  } = useMediaStore();
+  const { user } = useAuthStore();
 
   // Scroll to bottom on new message
   useEffect(() => {
@@ -27,7 +31,7 @@ export default function ChatPanel({ view }) {
 
   useEffect(() => {
     if (showMessages) {
-      setNewMessages(0);
+      setNewMessageCount(0);
     }
   }, [showMessages, messages]);
 

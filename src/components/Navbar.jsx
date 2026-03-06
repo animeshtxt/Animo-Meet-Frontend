@@ -1,6 +1,8 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../contexts/AuthContext";
+import useAuthStore from "../stores/authStore";
+import { killAllCameraAccess } from "../utils/mediaHandler";
 import {
   Button,
   Popover,
@@ -37,27 +39,9 @@ function Navbar() {
   const handleMenuClose = () => {
     setAnchorEl2(null);
   };
-  const {
-    token,
-    setToken,
-    setSnackbarMsg,
-    setSnackbarOpen,
-    user,
-    setUser,
-    validateToken,
-    isGuest,
-    setIsGuest,
-  } = useContext(AuthContext);
+  const { token, user, handleLogout } = useAuthStore();
   const routeTo = useNavigate();
   useEffect(() => {
-    // async function validateUser() {
-    //   const response = await validateToken();
-    // }
-    // try {
-    //   validateUser();
-    // } catch (e) {
-    //   console.log(e);
-    // }
     setIsGuestPage(url.pathname === "/guest");
     setIsLogin(url.pathname === "/login");
     setIsSignup(url.pathname === "/register");
@@ -65,23 +49,6 @@ function Navbar() {
 
   const navButtons = (
     <>
-      {!isGuestPage || isLogin || isSignUp ? (
-        <Button
-          sx={{
-            backgroundColor: "#e67c0e",
-            // width: { xs: "20px", sm: "50px" },
-          }}
-          className=""
-        >
-          <Link
-            to="/guest"
-            style={{ color: "white", textDecoration: "none" }}
-            className="text-xs sm:text-lg"
-          >
-            Join as Guest
-          </Link>
-        </Button>
-      ) : null}
       {!isLogin ? (
         <Button sx={{ backgroundColor: "green" }}>
           <Link
@@ -160,17 +127,10 @@ function Navbar() {
               <p className="mb-2">Name : {user.name}</p>
               <p className="mb-2 ">Username : {user.username}</p>
               <Button
-                onClick={async () => {
-                  localStorage.removeItem("token");
-                  setToken("");
-                  setUser({ type: "guest" });
-
-                  await setSnackbarMsg({
-                    severity: "success",
-                    message: "Logged out successfully",
-                  });
-                  setSnackbarOpen(true);
-                  window.location.href = "/";
+                onClick={() => {
+                  killAllCameraAccess();
+                  handleLogout();
+                  window.location.href = "/home";
                 }}
                 sx={{
                   color: "white",

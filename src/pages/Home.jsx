@@ -6,21 +6,15 @@ import { Button, TextField } from "@mui/material";
 import VideoCallIcon from "@mui/icons-material/VideoCall";
 import { AuthContext } from "../contexts/AuthContext";
 import status from "http-status";
+import { client } from "../utils/client";
 import { logger } from "../utils/logger";
+import useAuthStore from "../stores/authStore";
+import useMeetingStore from "../stores/meetingStore";
 
 function Home() {
   let routeTo = useNavigate();
-  const [meetingCode, setMeetingCode] = useState("");
-  const {
-    setSnackbarMsg,
-    setSnackbarOpen,
-    setIsHost,
-    client,
-    user,
-    setUser,
-    token,
-    isGuest,
-  } = useContext(AuthContext);
+  const { user, token, isGuest, addSnackbar } = useAuthStore();
+  const { meetingCode, setMeetingCode, isHost, setIsHost } = useMeetingStore();
   const [creatingNewMeet, setCreatingNewMeet] = useState(false);
   const [checkingCode, setCheckingCode] = useState(false);
   const [joinigMeet, setJoiningMeet] = useState(false);
@@ -28,44 +22,42 @@ function Home() {
 
   let handleJoinVideoCall = async (m) => {
     if (m === "") {
-      setSnackbarMsg({
+      addSnackbar({
         severity: "warning",
         message: "Enter a valid meeting code",
       });
-      setSnackbarOpen(true);
       return;
     }
     setCheckingCode(true);
-    try {
-      const response = await client.get(`/meeting/check-meet/${m}`);
-      if (response.status === status.OK) {
-        setJoiningMeet(true);
-        logger.dev("Meeting found redirecting to ", m);
-        routeTo(`/${m}`);
-      } else {
-        setSnackbarMsg({
-          severity: "warning",
-          message: response.data.message,
-        });
+    setTimeout(async () => {
+      try {
+        const response = await client.get(`/meeting/check-meet/${m}`);
+        if (response.status === status.OK && response.data.exists) {
+          setJoiningMeet(true);
+          logger.dev("Meeting found redirecting to ", m);
+          routeTo(`/${m}`);
+        } else {
+          addSnackbar({ severity: "warning", message: response.data.message });
+          setCheckingCode(false);
+        }
+      } catch (error) {
+        if (error.response?.status === 404) {
+          addSnackbar({
+            severity: "error",
+            message: "Meeting not found. Please check the code and try again.",
+          });
+          setCheckingCode(false);
+          console.error(error.response);
+        } else {
+          addSnackbar({
+            severity: "error",
+            message: "Something went wrong. Try again later.",
+          });
+          setCheckingCode(false);
+        }
       }
-    } catch (error) {
-      if (error.response?.status === 404) {
-        setSnackbarMsg({
-          severity: "error",
-          message: "Meeting not found. Please check the code and try again.",
-        });
-        setSnackbarOpen(true);
-        console.error(error.response);
-      } else {
-        setSnackbarMsg({
-          severity: "error",
-          message: "Something went wrong. Try again later.",
-        });
-        setSnackbarOpen(true);
-      }
-    }
-    // setCheckingCode(false);
-    setJoiningMeet(false);
+      setJoiningMeet(false);
+    }, 500);
   };
   function generateMeetingCode() {
     const segment = (length) =>
@@ -77,33 +69,40 @@ function Home() {
   }
 
   const createNewMeeting = async () => {
-    setCreatingNewMeet(true);
-    let isUnique = false;
-    let newCode;
-    while (!isUnique) {
-      newCode = generateMeetingCode();
-      logger.dev("checking code : ", newCode);
-      const res = await client.get(`/meeting/check-code/${newCode}`);
-      if (res.status === status.OK) {
-        isUnique = true;
-        setSnackbarMsg({
-          severity: "success",
-          message: "new meeting created successfully",
+    try {
+      setCreatingNewMeet(true);
+      let isUnique = false;
+      let newCode;
+      while (!isUnique) {
+        newCode = generateMeetingCode();
+        logger.dev("checking code : ", newCode);
+        const res = await client.get(`/meeting/check-code/${newCode}`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
-        setCreatingNewMeet(false);
-      } else {
-        setSnackbarMsg({
-          severity: "warning",
-          message: res.data.message,
-        });
+        if (res.status === status.OK) {
+          isUnique = true;
+          addSnackbar({
+            severity: "success",
+            message: "new meeting created successfully",
+          });
+          setCreatingNewMeet(false);
+        } else {
+          addSnackbar({ severity: "warning", message: res.data.message });
+        }
       }
-    }
 
-    setIsHost(true);
-    routeTo(`/${newCode}`);
+      setIsHost(true);
+      routeTo(`/${newCode}`);
+    } catch (e) {
+      logger.error(e);
+    } finally {
+      setCreatingNewMeet(false);
+    }
   };
 
   useEffect(() => {
+    useMeetingStore.getState().setLeftMeet(false);
+
     logger.dev("Rendering home.jsx");
     const getPrevMeets = async () => {
       try {
@@ -117,10 +116,7 @@ function Home() {
         } else {
           logger.dev("not found");
 
-          setSnackbarMsg({
-            severity: "warning",
-            message: res.data.message,
-          });
+          addSnackbar({ severity: "warning", message: res.data.message });
         }
       } catch (e) {
         logger.error(e);
@@ -154,7 +150,7 @@ function Home() {
               </h3>
             </div>
             <div className="flex gap-2 items-center flex-wrap flex-col mt-8">
-              {!isGuest && (
+              {!useAuthStore.getState().isGuest && (
                 <>
                   <Button
                     sx={{
@@ -180,7 +176,7 @@ function Home() {
                   <span className="font-bold text-white">OR</span>
                 </>
               )}
-              {isGuest && (
+              {useAuthStore.getState().isGuest && (
                 <>
                   <span className="font-bold text-white">
                     You are joining as a Guest.{" "}
@@ -188,25 +184,10 @@ function Home() {
                       Login
                     </Link>{" "}
                     or{" "}
-                    <Link to="/register" style={{ color: "#0be00b" }}>
+                    <Link to="/signup" style={{ color: "#0be00b" }}>
                       Signup
                     </Link>{" "}
                     to create meeting.
-                  </span>
-                  <span>
-                    <input
-                      type="text"
-                      placeholder="Enter your name"
-                      value={user.name}
-                      onChange={(e) =>
-                        setUser({
-                          ...user,
-                          name: e.target.value,
-                          username: `${e.target.value}`,
-                        })
-                      }
-                      className="border h-[36px] py-[2px] px-2 focus:outline-[#2c7eea] text-white"
-                    />
                   </span>
                 </>
               )}
@@ -238,9 +219,9 @@ function Home() {
                   disabled={checkingCode || joinigMeet}
                 >
                   {checkingCode
-                    ? "Checking code"
+                    ? "Checking code..."
                     : joinigMeet
-                      ? "Joining"
+                      ? "Joining..."
                       : "Join"}
                 </Button>
               </div>
@@ -279,16 +260,12 @@ function Home() {
                               },
                             }}
                             onClick={() => {
-                              handleJoinVideoCall(m);
+                              routeTo(`/${m}`);
                             }}
                             variant="contained"
-                            disabled={checkingCode || joinigMeet}
+                            disabled={joinigMeet}
                           >
-                            {checkingCode
-                              ? "Checking code"
-                              : joinigMeet
-                                ? "Joining"
-                                : "Join"}
+                            {joinigMeet ? "Joining..." : "Join"}
                           </Button>
                         </p>
                       );

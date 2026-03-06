@@ -28,50 +28,47 @@ export function AuthProvider({ children }) {
     setSnackbarOpen(false);
   };
   const validateToken = async () => {
-    console.log("validate token called");
-    const token = localStorage.getItem("token");
-    if (!token || token === "") {
-      setIsGuest(true);
-      setUser({
-        type: "guest",
-      });
-      console.log("Token not present");
-      setLoading(false);
-      return false;
-    }
-    console.log("Token found, validating...");
-    try {
-      let response = await client.get("/users/verify-user", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.status === status.OK) {
-        setToken(token);
-        setUser({
-          username: response.data.username,
-          name: response.data.name,
-          type: "registered",
-        });
-        console.log("Token verified, user : ", response.data);
-        setIsGuest(false);
-        setLoading(false);
-
-        return true;
-      } else {
-        console.log(
-          `status : ${response.status} message: ${response.data.message}`,
-        );
-      }
-    } catch (err) {
-      console.log(err);
-      setIsGuest(true);
-      setUser({ type: "guest" });
-      setLoading(false);
-
-      return false;
-    }
-
-    setLoading(false);
-    return false;
+    // console.log("validate token called");
+    // const token = localStorage.getItem("token");
+    // if (!token || token === "") {
+    //   setIsGuest(true);
+    //   setUser({
+    //     type: "guest",
+    //   });
+    //   console.log("Token not present");
+    //   setLoading(false);
+    //   return false;
+    // }
+    // console.log("Token found, validating...");
+    // try {
+    //   let response = await client.get("/users/verify-user", {
+    //     headers: { Authorization: `Bearer ${token}` },
+    //   });
+    //   if (response.status === status.OK) {
+    //     setToken(token);
+    //     setUser({
+    //       username: response.data.username,
+    //       name: response.data.name,
+    //       type: "registered",
+    //     });
+    //     console.log("Token verified, user : ", response.data);
+    //     setIsGuest(false);
+    //     setLoading(false);
+    //     return true;
+    //   } else {
+    //     console.log(
+    //       `status : ${response.status} message: ${response.data.message}`,
+    //     );
+    //   }
+    // } catch (err) {
+    //   console.log(err);
+    //   setIsGuest(true);
+    //   setUser({ type: "guest" });
+    //   setLoading(false);
+    //   return false;
+    // }
+    // setLoading(false);
+    // return false;
   };
   const handleRegister = async (name, username, password) => {
     try {
@@ -132,12 +129,6 @@ export function AuthProvider({ children }) {
     }
   };
 
-  useEffect(() => {
-    if (!token || token === "") {
-      console.log("token not set calling validateToken");
-      validateToken();
-    }
-  }, []);
   return (
     <div>
       <AuthContext.Provider
@@ -162,7 +153,7 @@ export function AuthProvider({ children }) {
         }}
       >
         {children}
-        <Snackbar
+        {/* <Snackbar
           open={snackbarOpen}
           autoHideDuration={6000}
           onClose={handleClose}
@@ -177,7 +168,7 @@ export function AuthProvider({ children }) {
           >
             {snackbarMsg.message}
           </Alert>
-        </Snackbar>
+        </Snackbar> */}
       </AuthContext.Provider>
     </div>
   );

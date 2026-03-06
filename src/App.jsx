@@ -8,7 +8,7 @@ import Home from "./pages/Home";
 import VideoMeetComponent from "./pages/VideoMeetComponent";
 import Guest from "./pages/Guest";
 import Controls from "./components/Controls";
-
+import AuthWrapper from "./components/Wrappers/AuthWrapper";
 import { AuthProvider } from "./contexts/AuthContext";
 import { MediaContextProvider } from "./contexts/MediaContext";
 import { SocketContextProvider } from "./contexts/SocketContext";
@@ -19,10 +19,11 @@ function App() {
   return (
     <>
       <Router>
-        <AuthProvider>
-          <MediaContextProvider>
-            <SocketContextProvider>
-              {/* <Routes>
+        <AuthWrapper>
+          <AuthProvider>
+            <MediaContextProvider>
+              <SocketContextProvider>
+                {/* <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Signup />} />
@@ -31,10 +32,11 @@ function App() {
                 <Route path="/guest" element={<Guest />} />
                 <Route path="/control" element={<Controls />} />
               </Routes> */}
-              <AppRoutes />
-            </SocketContextProvider>
-          </MediaContextProvider>
-        </AuthProvider>
+                <AppRoutes />
+              </SocketContextProvider>
+            </MediaContextProvider>
+          </AuthProvider>
+        </AuthWrapper>
       </Router>
     </>
   );
