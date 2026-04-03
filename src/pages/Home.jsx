@@ -71,21 +71,20 @@ function Home() {
   const createNewMeeting = async () => {
     try {
       setCreatingNewMeet(true);
-      let isUnique = false;
+      let created = false;
       let newCode;
-      while (!isUnique) {
+      while (!created) {
         newCode = generateMeetingCode();
         logger.dev("checking code : ", newCode);
-        const res = await client.get(`/meeting/check-code/${newCode}`, {
+        const res = await client.post(`/meeting/create-meet/${newCode}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.status === status.OK) {
-          isUnique = true;
+          created = true;
           addSnackbar({
             severity: "success",
             message: "new meeting created successfully",
           });
-          setCreatingNewMeet(false);
         } else {
           addSnackbar({ severity: "warning", message: res.data.message });
         }
@@ -95,8 +94,11 @@ function Home() {
       routeTo(`/${newCode}`);
     } catch (e) {
       logger.error(e);
-    } finally {
       setCreatingNewMeet(false);
+      addSnackbar({
+        severity: "error",
+        message: "Something went wrong. Try again later.",
+      });
     }
   };
 
