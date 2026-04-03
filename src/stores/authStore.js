@@ -127,19 +127,41 @@ const useAuthStore = create((set, get) => ({
   },
 
   handleLogout: async () => {
-    localStorage.removeItem("token");
-    set({
-      token: null,
-      user: { type: "guest" },
-      isGuest: true,
-      loading: false,
-    });
-    get().addSnackbar({
-      severity: "success",
-      message: "Logged out successfully",
-    });
+    // localStorage.removeItem("token");
+    // set({
+    //   token: null,
+    //   user: { type: "guest" },
+    //   isGuest: true,
+    //   loading: false,
+    // });
+    // get().addSnackbar({
+    //   severity: "success",
+    //   message: "Logged out successfully",
+    // });
+    try {
+      const res = await client.post("/users/logout");
+      if (res.status === status.OK) {
+        set({
+          token: null,
+          user: { type: "guest" },
+          isGuest: true,
+          loading: false,
+        });
+        get().addSnackbar({
+          severity: "success",
+          message: "Logged out successfully",
+        });
+      }
+    } catch (e) {
+      get().addSnackbar({
+        severity: "failure",
+        message: "Some error occured logging you out",
+      });
+      logger.err(`Error logging out : ${e}`);
+    }
   },
   validateToken: async () => {
+    /*
     const token = localStorage.getItem("token");
     if (!token) {
       set({
@@ -150,13 +172,14 @@ const useAuthStore = create((set, get) => ({
       console.log("Token not present");
       return false;
     }
+      */
     try {
       let response = await client.get("/users/verify-user", {
-        headers: { Authorization: `Bearer ${token}` },
+        // headers: { Authorization: `Bearer ${token}` },
       });
       if (response.status === status.OK) {
         set({
-          token,
+          token: response.data.token,
           user: {
             username: response.data.username,
             name: response.data.name,
