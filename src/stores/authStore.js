@@ -174,9 +174,7 @@ const useAuthStore = create((set, get) => ({
     }
       */
     try {
-      let response = await client.get("/users/verify-user", {
-        // headers: { Authorization: `Bearer ${token}` },
-      });
+      let response = await client.get("/users/verify-user");
       if (response.status === status.OK) {
         set({
           token: response.data.token,
