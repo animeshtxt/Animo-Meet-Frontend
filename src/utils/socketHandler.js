@@ -5,6 +5,15 @@ const server_url = import.meta.env.VITE_SOCKET_URL;
 const peerConfigConnections = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
 };
+const env = import.meta.env.VITE_ENVIRONMENT;
+
+const socketTarget =
+  env === "development" ? server_url : window.location.origin;
+const socketOptions = {
+  secure: window.location.protocol === "https:",
+  // Add path only if we are using the /backend/ relative URL
+  ...(server_url === "/backend/" && { path: "/backend/socket.io/" }),
+};
 
 import { black, silence } from "./mediaHandler";
 
@@ -345,9 +354,7 @@ const connectToSocketServer = (
   const isSecure =
     server_url.startsWith("https://") || server_url.startsWith("wss://");
 
-  socketRef.current = io.connect(server_url, {
-    secure: isSecure,
-  });
+  socketRef.current = io(socketTarget, socketOptions);
 
   // Create a ref to store usernamesMap for signal handler
   const usernamesMapRef = { current: {} };
