@@ -107,7 +107,7 @@ function Navbar() {
               color: "white",
             }}
           >
-            {user?.name[0]?.toUpperCase()}
+            {user?.name?.[0]?.toUpperCase()}
           </Button>
           <Popover
             id={id}
