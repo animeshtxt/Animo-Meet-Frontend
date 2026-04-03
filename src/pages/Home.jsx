@@ -76,9 +76,15 @@ function Home() {
       while (!created) {
         newCode = generateMeetingCode();
         logger.dev("checking code : ", newCode);
-        const res = await client.post(`/meeting/create-meet/${newCode}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await client.post(
+          `/meeting/create-meet/${newCode}`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${useAuthStore.getState().token}`,
+            },
+          },
+        );
         if (res.status === status.OK) {
           created = true;
           addSnackbar({
