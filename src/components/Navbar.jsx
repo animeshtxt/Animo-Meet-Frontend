@@ -107,7 +107,7 @@ function Navbar() {
               color: "white",
             }}
           >
-            {user.name[0].toUpperCase()}
+            {user?.name[0]?.toUpperCase()}
           </Button>
           <Popover
             id={id}
@@ -124,8 +124,8 @@ function Navbar() {
             }}
           >
             <div className="p-2">
-              <p className="mb-2">Name : {user.name}</p>
-              <p className="mb-2 ">Username : {user.username}</p>
+              <p className="mb-2">Name : {user?.name}</p>
+              <p className="mb-2 ">Username : {user?.username}</p>
               <Button
                 onClick={() => {
                   killAllCameraAccess();

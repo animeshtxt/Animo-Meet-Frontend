@@ -489,9 +489,9 @@ function Controls() {
                               className="flex items-center gap-2 justify-start mb-4"
                             >
                               <span className="text-white bg-orange-500 rounded-full h-[30px] w-[30px] flex justify-center items-center ">
-                                {user[0].toUpperCase()}
+                                {user[0]?.toUpperCase()}
                               </span>
-                              {user === user.username ? `${user} (you)` : user}
+                              {user === user?.username ? `${user} (you)` : user}
                             </li>
                           ))
                         : null}
