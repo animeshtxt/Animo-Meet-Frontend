@@ -112,7 +112,7 @@ function Home() {
         if (res.status === status.OK) {
           logger.dev("found");
           logger.dev(res.data);
-          setPreviousMeets(res.data);
+          setPreviousMeets(Array.isArray(res.data) ? res.data : []);
         } else {
           logger.dev("not found");
 
@@ -229,7 +229,7 @@ function Home() {
                 {previousMeets.length > 0 ? (
                   <div style={{ marginTop: "10px" }}>
                     <h1 style={{ color: "white" }}>Previous meets</h1>
-                    {previousMeets.map((m, i) => {
+                    {Array.isArray(previousMeets) && previousMeets.map((m, i) => {
                       return (
                         <p
                           key={i}

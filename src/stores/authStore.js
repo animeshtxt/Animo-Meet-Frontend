@@ -143,7 +143,7 @@ const useAuthStore = create((set, get) => ({
       if (res.status === status.OK) {
         set({
           token: null,
-          user: { type: "guest" },
+          user: { name: "", username: "", type: "guest" },
           isGuest: true,
           loading: false,
         });
@@ -197,7 +197,11 @@ const useAuthStore = create((set, get) => ({
       }
     } catch (err) {
       console.log(err);
-      set({ isGuest: true, user: { type: "guest" }, loading: false });
+      set({
+        isGuest: true,
+        user: { name: "", username: "", type: "guest" },
+        loading: false,
+      });
 
       return false;
     }
